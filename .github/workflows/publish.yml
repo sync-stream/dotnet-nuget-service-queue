@@ -22,6 +22,6 @@ jobs:
         with:
           INCLUDE_SYMBOLS: false
           NUGET_KEY: ${{ secrets.SS_NUGET_API_KEY }}
-          PACKAGE_NAME: 'SyncStream.Validator.EmailAddress'
-          PROJECT_FILE_PATH: 'SyncStream.Validator.EmailAddress.csproj'
+          PACKAGE_NAME: 'SyncStream.Service.Queue'
+          PROJECT_FILE_PATH: 'SyncStream.Service.Queue.csproj'
           TAG_COMMIT: false
