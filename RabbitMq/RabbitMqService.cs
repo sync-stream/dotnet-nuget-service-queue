@@ -70,10 +70,28 @@ public class RabbitMqService : IRabbitMqService
     /// This method instantiates our service with a RabbitMQ Connection
     /// </summary>
     /// <param name="logServiceProvider">The log service provider</param>
-    public RabbitMqService(ILogger<RabbitMqService> logServiceProvider)
+    /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
+    public RabbitMqService(ILogger<RabbitMqService> logServiceProvider, RabbitMqQueueConfiguration defaultEndpoint = null)
     {
         // Set the logger into the instance
         _logger = logServiceProvider;
+
+        // Check for a default queue
+        if (defaultEndpoint is not null) WithDefaultEndpoint(defaultEndpoint);
+    }
+
+    /// <summary>
+    /// This method instantiates our service with a RabbitMQ Connection
+    /// </summary>
+    /// <param name="logServiceProvider">The log service provider</param>
+    /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
+    public RabbitMqService(ILogger<RabbitMqService> logServiceProvider, string defaultEndpoint = null)
+    {
+        // Set the logger into the instance
+        _logger = logServiceProvider;
+
+        // Check for a default queue
+        if (defaultEndpoint is not null) WithDefaultEndpoint(defaultEndpoint);
     }
 
     /// <summary>

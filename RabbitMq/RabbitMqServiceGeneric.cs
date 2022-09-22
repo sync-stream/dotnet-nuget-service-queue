@@ -12,7 +12,19 @@ public class RabbitMqService<TPayload> : RabbitMqService, IRabbitMqService<TPayl
     /// This method instantiates our service with a RabbitMQ Connection
     /// </summary>
     /// <param name="logServiceProvider">The log service provider</param>
-    public RabbitMqService(ILogger<RabbitMqService> logServiceProvider) : base(logServiceProvider)
+    /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
+    public RabbitMqService(ILogger<RabbitMqService> logServiceProvider,
+        RabbitMqQueueConfiguration defaultEndpoint = null) : base(logServiceProvider, defaultEndpoint)
+    {
+    }
+
+    /// <summary>
+    /// This method instantiates our service with a RabbitMQ Connection
+    /// </summary>
+    /// <param name="logServiceProvider">The log service provider</param>
+    /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
+    public RabbitMqService(ILogger<RabbitMqService> logServiceProvider, string defaultEndpoint = null) : base(
+        logServiceProvider, defaultEndpoint)
     {
     }
 

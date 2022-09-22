@@ -59,7 +59,7 @@
     <PackageReference Include="SyncStream.Cryptography" Version="1.0.4" />
     
     <!-- We'll need our serializer -->
-    <PackageReference Include="SyncStream.Serializer" Version="1.0.3" />
+    <PackageReference Include="SyncStream.Serializer" Version="1.0.2" />
   </ItemGroup>
 
 </Project>
