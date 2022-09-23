@@ -5,13 +5,14 @@ using System.Xml.Serialization;
 using RabbitMQ.Client;
 
 // Define our namespace
-namespace SyncStream.Service.Queue.RabbitMq;
+namespace SyncStream.Service.Queue;
 
 /// <summary>
 /// This class maintains the structure of a registered queue in the configuration
 /// </summary>
-[XmlRoot("rabbitMqQueueConfiguration")]
-public class RabbitMqQueueConfiguration
+[XmlInclude(typeof(QueueSimpleStorageServiceConfiguration))]
+[XmlRoot("QueueConfiguration")]
+public class QueueConfiguration
 {
     /// <summary>
     /// This property denotes whether the queue is enabled or not
@@ -63,6 +64,13 @@ public class RabbitMqQueueConfiguration
     public bool Secure { get; set; }
 
     /// <summary>
+    /// This property contains the AWS S3 configuration for the queue
+    /// </summary>
+    [JsonPropertyName("SimpleStorageService")]
+    [XmlElement("SimpleStorageService")]
+    public QueueSimpleStorageServiceConfiguration SimpleStorageService { get; set; }
+
+    /// <summary>
     /// This property contains the username with which to authenticate with the RabbitMQ service
     /// </summary>
     [JsonPropertyName("Username")]
@@ -94,7 +102,7 @@ public class RabbitMqQueueConfiguration
     /// This method disconnects from the queue endpoint
     /// </summary>
     /// <returns>This instance</returns>
-    public RabbitMqQueueConfiguration Disconnect()
+    public QueueConfiguration Disconnect()
     {
         // Close the channel
         Channel?.Close();

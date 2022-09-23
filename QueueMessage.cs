@@ -2,14 +2,14 @@
 using System.Xml.Serialization;
 
 // Define our namespace
-namespace SyncStream.Service.Queue.RabbitMq;
+namespace SyncStream.Service.Queue;
 
 /// <summary>
 /// This class maintains the structure for a standardized Queue Message
 /// </summary>
 /// <typeparam name="TPayload">The message model type the queue message should deserialize to</typeparam>
 [XmlRoot("queueMessage")]
-public class RabbitMqMessage<TPayload>
+public class QueueMessage<TPayload>
 {
     /// <summary>
     /// This property contains the timestamp at which the Queue Message was consumed
@@ -49,7 +49,7 @@ public class RabbitMqMessage<TPayload>
     /// <summary>
     /// This method instantiates an empty Queue Message
     /// </summary>
-    public RabbitMqMessage()
+    public QueueMessage()
     {
     }
 
@@ -57,7 +57,7 @@ public class RabbitMqMessage<TPayload>
     /// This method instantiates a new Queue Message with a <paramref name="payload" />
     /// </summary>
     /// <param name="payload">The message itself</param>
-    public RabbitMqMessage(TPayload payload) =>
+    public QueueMessage(TPayload payload) =>
         WithPayload(payload);
 
     /// <summary>
@@ -65,7 +65,7 @@ public class RabbitMqMessage<TPayload>
     /// </summary>
     /// <param name="payload">The message itself</param>
     /// <returns>This instance</returns>
-    public RabbitMqMessage<TPayload> WithPayload(TPayload payload)
+    public QueueMessage<TPayload> WithPayload(TPayload payload)
     {
         // Reset the payload into the instance
         Payload = payload;
