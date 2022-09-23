@@ -164,7 +164,7 @@ public class QueueConfiguration
     /// </summary>
     /// <returns>The new RabbitMQ IConnection</returns>
     public IConnection NewConnection() =>
-        new ConnectionFactory
+        new ConnectionFactory()
         {
             // Dispatch the consumers asynchronously
             DispatchConsumersAsync = true,

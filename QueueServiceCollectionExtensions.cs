@@ -58,26 +58,6 @@ public static class QueueServiceCollectionExtensions
     }
 
     /// <summary>
-    /// This method registers a subscriber for a RabbitMQ endpoint
-    /// </summary>
-    /// <param name="instance">The current instance of IServiceCollection</param>
-    /// <param name="subscriber">The subscriber delegate</param>
-    /// <param name="defaultEndpoint">Optional endpoint definition</param>
-    /// <typeparam name="TPayload">The expected message type from the queue</typeparam>
-    /// <returns>The current instance of IServiceCollection</returns>
-    public static IServiceCollection UseSyncStreamQueueSubscriber<TPayload>(this IServiceCollection instance,
-        IQueueService.DelegateSubscriber<TPayload> subscriber, QueueConfiguration defaultEndpoint = null)
-    {
-        // Add our hosted service
-        instance.AddHostedService(provider =>
-            new QueueServiceSubscriber<TPayload>(provider.GetService<ILogger<QueueServiceSubscriber<TPayload>>>(),
-                provider, subscriber, defaultEndpoint));
-
-        // We're done, return the IServiceCollection
-        return instance;
-    }
-
-    /// <summary>
     /// This method registers an asynchronous subscriber for a RabbitMQ endpoint
     /// </summary>
     /// <param name="instance">The current instance of IServiceCollection</param>
@@ -91,27 +71,7 @@ public static class QueueServiceCollectionExtensions
     {
         // Add our hosted service
         instance.AddHostedService(provider =>
-            new QueueServiceSubscriber<TPayload>(provider.GetService<ILogger<QueueServiceSubscriber<TPayload>>>(),
-                provider, subscriber, defaultEndpoint));
-
-        // We're done, return the IServiceCollection
-        return instance;
-    }
-
-    /// <summary>
-    /// This method registers a subscriber for a RabbitMQ endpoint
-    /// </summary>
-    /// <param name="instance">The current instance of IServiceCollection</param>
-    /// <param name="subscriber">The subscriber delegate</param>
-    /// <param name="defaultEndpoint">Optional endpoint name</param>
-    /// <typeparam name="TPayload">The expected message type from the queue</typeparam>
-    /// <returns>The current instance of IServiceCollection</returns>
-    public static IServiceCollection UseSyncStreamQueueSubscriber<TPayload>(this IServiceCollection instance,
-        IQueueService.DelegateSubscriber<TPayload> subscriber, string defaultEndpoint = null)
-    {
-        // Add our hosted service
-        instance.AddHostedService(provider =>
-            new QueueServiceSubscriber<TPayload>(provider.GetService<ILogger<QueueServiceSubscriber<TPayload>>>(),
+            new QueueSubscriberService<TPayload>(provider.GetService<ILogger<QueueSubscriberService<TPayload>>>(),
                 provider, subscriber, defaultEndpoint));
 
         // We're done, return the IServiceCollection
@@ -131,7 +91,7 @@ public static class QueueServiceCollectionExtensions
     {
         // Add our hosted service
         instance.AddHostedService(provider =>
-            new QueueServiceSubscriber<TPayload>(provider.GetService<ILogger<QueueServiceSubscriber<TPayload>>>(),
+            new QueueSubscriberService<TPayload>(provider.GetService<ILogger<QueueSubscriberService<TPayload>>>(),
                 provider, subscriber, defaultEndpoint));
 
         // We're done, return the IServiceCollection

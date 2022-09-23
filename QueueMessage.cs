@@ -8,6 +8,7 @@ namespace SyncStream.Service.Queue;
 /// This class maintains the structure for a standardized Queue Message
 /// </summary>
 /// <typeparam name="TPayload">The message model type the queue message should deserialize to</typeparam>
+[XmlInclude(typeof(QueueMessageRejectedReason))]
 [XmlRoot("queueMessage")]
 public class QueueMessage<TPayload>
 {
@@ -22,7 +23,7 @@ public class QueueMessage<TPayload>
     /// This property contains the timestamp at which the queue message was created
     /// </summary>
     [JsonPropertyName("created")]
-    [XmlElement("created")]
+    [XmlAttribute("created")]
     public DateTime Created { get; set; }
 
     /// <summary>
@@ -73,4 +74,43 @@ public class QueueMessage<TPayload>
         // We're done, return the instance
         return this;
     }
+
+    /// <summary>
+    /// This method converts the instance to an S3 alias message
+    /// </summary>
+    /// <param name="objectName">The S3 object-key path to store the message as</param>
+    /// <param name="acknowledged">Optional, the timestamp at which the message was acknowledged</param>
+    /// <param name="rejected">Optional, the timestamp at which the message was rejected</param>
+    /// <param name="reason">Optional, the reason the message was rejected</param>
+    /// <returns>An instantiated S3 queue message alias</returns>
+    public SimpleStorageServiceQueueMessage<TPayload> ToSimpleStorageServiceQueueMessage(string objectName,
+        DateTime? acknowledged = null, DateTime? rejected = null, QueueMessageRejectedReason reason = null) => new()
+    {
+        // Set the acknowledged timestamp into the response
+        Acknowledged = acknowledged,
+
+        // Set the consumed timestamp into the response
+        Consumed = Consumed,
+
+        // Set the creation timestamp into the response
+        Created = Created,
+
+        // Set the unique message ID into the response
+        Id = Id,
+
+        // Set the payload envelope into the response
+        Envelope = Payload,
+
+        // Set the object name into the response
+        Payload = objectName,
+
+        // Set the published timestamp into the response
+        Published = Published,
+
+        // Set the rejection timestamp into the response
+        Rejected = rejected,
+
+        // Set the rejection reason into the response
+        RejectedReason = reason
+    };
 }

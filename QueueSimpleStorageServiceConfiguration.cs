@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using System.Xml.Serialization;
+using SyncStream.Aws.S3.Client.Config;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -44,4 +45,23 @@ public class QueueSimpleStorageServiceConfiguration
     [JsonPropertyName("SecretAccessKey")]
     [XmlAttribute("secretAccessKey")]
     public string SecretAccessKey { get; set; }
+
+    /// <summary>
+    /// This method generates an S3 client configuration object from the instance
+    /// </summary>
+    /// <returns>The instantiated S3 client configuration</returns>
+    public S3ClientConfig ToClientConfiguration() => new()
+    {
+        // Set the access key ID into the response configuration
+        AccessKeyId = AccessKeyId,
+
+        // Set the KMS key ID into the response configuration
+        KeyManagementServiceKeyId = KmsKeyId,
+
+        // Set the secret access key into the response configuration
+        SecretAccessKey = SecretAccessKey,
+
+        // Set the region into the response configuration
+        Region = Region
+    };
 }

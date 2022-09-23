@@ -13,8 +13,10 @@ public class QueueService<TPayload> : QueueService, IQueueService<TPayload>
     /// </summary>
     /// <param name="logServiceProvider">The log service provider</param>
     /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
-    public QueueService(ILogger<QueueService> logServiceProvider,
-        QueueConfiguration defaultEndpoint = null) : base(logServiceProvider, defaultEndpoint)
+    /// <param name="defaultSimpleStorageService">The default S3 configuration for the queue</param>
+    public QueueService(ILogger<QueueService<TPayload>> logServiceProvider, QueueConfiguration defaultEndpoint = null,
+        QueueSimpleStorageServiceConfiguration defaultSimpleStorageService = null) : base(logServiceProvider,
+        defaultEndpoint, defaultSimpleStorageService)
     {
     }
 
@@ -23,41 +25,28 @@ public class QueueService<TPayload> : QueueService, IQueueService<TPayload>
     /// </summary>
     /// <param name="logServiceProvider">The log service provider</param>
     /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
-    public QueueService(ILogger<QueueService> logServiceProvider, string defaultEndpoint = null) : base(
-        logServiceProvider, defaultEndpoint)
+    /// <param name="defaultSimpleStorageService">The default S3 configuration for the queue</param>
+    public QueueService(ILogger<QueueService<TPayload>> logServiceProvider, string defaultEndpoint = null,
+        QueueSimpleStorageServiceConfiguration defaultSimpleStorageService = null) : base(logServiceProvider,
+        defaultEndpoint, defaultSimpleStorageService)
     {
     }
 
     /// <summary>
-    /// This method publishes a <paramref name="payload"/> to the queue
+    /// This method asynchronously publishes a message a queue
     /// </summary>
-    /// <param name="payload">The message to publish</param>
-    /// <typeparam name="TPayload">The expected message type</typeparam>
-    /// <returns>The message that was published</returns>
-    public QueueMessage<TPayload> Publish(TPayload payload) => base.Publish(payload);
+    /// <param name="payload">The message payload to publish</param>
+    /// <returns>An awaitable task containing the published message</returns>
+    public Task<QueueMessage<TPayload>> PublishAsync(TPayload payload) => base.PublishAsync(payload);
 
     /// <summary>
-    /// This method publishes a message to <paramref name="queueName" />
+    /// This method asynchronously publishes a message to <paramref name="queueName" />
     /// </summary>
-    /// <param name="queueName">The queue to publish messages to</param>
-    /// <param name="payload">The message to publish</param>
-    /// <returns>The published message</returns>
-    public QueueMessage<TPayload> Publish(string queueName, TPayload payload) => base.Publish(queueName, payload);
-
-    /// <summary>
-    /// This method subscribes to the queue
-    /// </summary>
-    /// <param name="delegateSubscriber">The subscription worker</param>
-    public void Subscribe(IQueueService.DelegateSubscriber<TPayload> delegateSubscriber) =>
-        base.Subscribe(delegateSubscriber);
-
-    /// <summary>
-    /// This method subscribes to <paramref name="queueName" />
-    /// </summary>
-    /// <param name="queueName">The queue to subscribe to</param>
-    /// <param name="delegateSubscriber">The subscription worker</param>
-    public void Subscribe(string queueName, IQueueService.DelegateSubscriber<TPayload> delegateSubscriber) =>
-        base.Subscribe(queueName, delegateSubscriber);
+    /// <param name="queueName">The queue to publish the <paramref name="payload" /> to</param>
+    /// <param name="payload">The message payload to publish</param>
+    /// <returns>An awaitable task containing the published message</returns>
+    public Task<QueueMessage<TPayload>> PublishAsync(string queueName, TPayload payload) =>
+        base.PublishAsync(queueName, payload);
 
     /// <summary>
     /// This method asynchronously subscribes to the queue
@@ -65,8 +54,8 @@ public class QueueService<TPayload> : QueueService, IQueueService<TPayload>
     /// <param name="delegateSubscriber">The message worker</param>
     /// <param name="stoppingToken">The token denoting task cancellation</param>
     /// <returns>An awaitable task containing the message</returns>
-    public void Subscribe(IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber,
-        CancellationToken stoppingToken = default) => base.Subscribe(delegateSubscriber, stoppingToken);
+    public Task SubscribeAsync(IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber,
+        CancellationToken stoppingToken = default) => base.SubscribeAsync(delegateSubscriber, stoppingToken);
 
     /// <summary>
     /// This method asynchronously subscribes to <paramref name="queueName" />
@@ -76,6 +65,6 @@ public class QueueService<TPayload> : QueueService, IQueueService<TPayload>
     /// <param name="stoppingToken">The token denoting task cancellation</param>
     /// <typeparam name="TPayload">The expected message type</typeparam>
     /// <returns>An awaitable task containing the message</returns>
-    public void Subscribe(string queueName, IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber,
-        CancellationToken stoppingToken = default) => base.Subscribe(queueName, delegateSubscriber, stoppingToken);
+    public Task SubscribeAsync(string queueName, IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber,
+        CancellationToken stoppingToken = default) => base.SubscribeAsync(queueName, delegateSubscriber, stoppingToken);
 }
