@@ -13,6 +13,9 @@
     <Description>
       This library provides an internal Queue service
     </Description>
+    
+    <!-- Define our documentation file -->
+    <DocumentationFile>readme.md</DocumentationFile>
 
     <!-- Enable implicit imports -->
     <ImplicitUsings>enable</ImplicitUsings>
