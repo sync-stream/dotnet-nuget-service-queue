@@ -11,6 +11,38 @@ namespace SyncStream.Service.Queue;
 public static class QueueServiceCollectionExtensions
 {
     /// <summary>
+    /// This method registers the global (default) queue to use with the QueueService
+    /// </summary>
+    /// <param name="instance">The current IServiceCollection instance</param>
+    /// <param name="endpoint">The endpoint to use globally and by default</param>
+    /// <returns><paramref name="instance" /></returns>
+    public static IServiceCollection UseGlobalSyncStreamQueueEndpoint(this IServiceCollection instance,
+        QueueConfiguration endpoint)
+    {
+        // Register the global/default endpoint
+        QueueService.RegisterDefaultEndpoint(endpoint);
+
+        // We're done, return the IServiceCollection instance
+        return instance;
+    }
+
+    /// <summary>
+    /// This method registers the global (default) S3 configuration to use with the QueueService
+    /// </summary>
+    /// <param name="instance"></param>
+    /// <param name="simpleStorageServiceConfiguration"></param>
+    /// <returns></returns>
+    public static IServiceCollection UseGlobalSyncStreamQueueSimpleStorageService(this IServiceCollection instance,
+        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration)
+    {
+        // Register the global/default S3 configuration
+        QueueService.RegisterDefaultSimpleStorageServiceConfiguration(simpleStorageServiceConfiguration);
+
+        // We're done, return the IServiceCollection instance
+        return instance;
+    }
+
+    /// <summary>
     /// This method registers an endpoint configuration with the RabbitMQ service provider
     /// </summary>
     /// <param name="instance">The current instance of IServiceCollection</param>

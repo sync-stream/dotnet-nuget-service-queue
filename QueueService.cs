@@ -67,8 +67,8 @@ public class QueueService : IQueueService
         DefaultEndpoint = endpoint;
 
         // Check for an S3 configuration in the queue
-        if (DefaultEndpoint.SimpleStorageService is not null)
-            DefaultSimpleStorageServiceConfiguration = DefaultEndpoint.SimpleStorageService;
+        if (endpoint.SimpleStorageService is not null)
+            RegisterDefaultSimpleStorageServiceConfiguration(endpoint.SimpleStorageService);
 
         // We're done, return the endpoint
         return DefaultEndpoint;
@@ -83,6 +83,32 @@ public class QueueService : IQueueService
     /// <returns><paramref name="instance" /></returns>
     public static IQueueService RegisterDefaultEndpoint(IQueueService instance, QueueConfiguration endpoint,
         bool register = true) => instance.SetQueueEndpoint(RegisterDefaultEndpoint(endpoint, register));
+
+    /// <summary>
+    /// This method registers the default S3 configuration to use for any queue
+    /// </summary>
+    /// <param name="simpleStorageServiceConfiguration">The S3 configuration to register</param>
+    /// <returns>The recently registered S3 configuration</returns>
+    public static QueueSimpleStorageServiceConfiguration RegisterDefaultSimpleStorageServiceConfiguration(
+        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration)
+    {
+        // Reset the default S3 configuration
+        DefaultSimpleStorageServiceConfiguration = simpleStorageServiceConfiguration;
+
+        // We're done, return the simple storage service configuration
+        return DefaultSimpleStorageServiceConfiguration;
+    }
+
+    /// <summary>
+    /// This method registers the default S3 configuration for an existing QueueService instance
+    /// </summary>
+    /// <param name="instance">The existing QueueService instance</param>
+    /// <param name="simpleStorageServiceConfiguration">The S3 configuration to register</param>
+    /// <returns><paramref name="instance" /></returns>
+    public static IQueueService RegisterDefaultSimpleStorageServiceConfiguration(IQueueService instance,
+        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration) =>
+        instance.SetQueueSimpleStorageServiceConfiguration(
+            RegisterDefaultSimpleStorageServiceConfiguration(simpleStorageServiceConfiguration));
 
     /// <summary>
     /// This method registers a RabbitMQ endpoint configuration
@@ -115,32 +141,6 @@ public class QueueService : IQueueService
         RegisterEndpointConfigurations(endpoints.ToList());
 
     /// <summary>
-    /// This method registers the default S3 configuration to use for any queue
-    /// </summary>
-    /// <param name="simpleStorageServiceConfiguration">The S3 configuration to register</param>
-    /// <returns>The recently registered S3 configuration</returns>
-    public static QueueSimpleStorageServiceConfiguration RegisterDefaultSimpleStorageServiceConfiguration(
-        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration)
-    {
-        // Reset the default S3 configuration
-        DefaultSimpleStorageServiceConfiguration = simpleStorageServiceConfiguration;
-
-        // We're done, return the simple storage service configuration
-        return DefaultSimpleStorageServiceConfiguration;
-    }
-
-    /// <summary>
-    /// This method registers the default S3 configuration for an existing QueueService instance
-    /// </summary>
-    /// <param name="instance">The existing QueueService instance</param>
-    /// <param name="simpleStorageServiceConfiguration">The S3 configuration to register</param>
-    /// <returns><paramref name="instance" /></returns>
-    public static IQueueService RegisterDefaultSimpleStorageServiceConfiguration(IQueueService instance,
-        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration) =>
-        instance.SetQueueSimpleStorageServiceConfiguration(
-            RegisterDefaultSimpleStorageServiceConfiguration(simpleStorageServiceConfiguration));
-
-    /// <summary>
     /// This property contains the instance of our logger
     /// </summary>
     private readonly ILogger<QueueService> _logger;
@@ -148,13 +148,12 @@ public class QueueService : IQueueService
     /// <summary>
     /// This property contains the instance of our default queue
     /// </summary>
-    private QueueConfiguration _queue = DefaultEndpoint;
+    private QueueConfiguration _queue;
 
     /// <summary>
     /// This property contains the instance of our simple storage service configuration
     /// </summary>
-    private QueueSimpleStorageServiceConfiguration _simpleStorageServiceConfiguration =
-        DefaultEndpoint?.SimpleStorageService ?? DefaultSimpleStorageServiceConfiguration;
+    private QueueSimpleStorageServiceConfiguration _simpleStorageServiceConfiguration;
 
     /// <summary>
     /// This method instantiates our service with a RabbitMQ Connection
@@ -168,6 +167,9 @@ public class QueueService : IQueueService
         // Set the logger into the instance
         _logger = logServiceProvider;
 
+        // Default the queue endpoint
+        _queue = DefaultEndpoint;
+
         // Check for a default queue
         if (defaultEndpoint is not null)
         {
@@ -179,7 +181,9 @@ public class QueueService : IQueueService
         }
 
         // Set the S3 configuration into the instance
-        _simpleStorageServiceConfiguration = _queue?.SimpleStorageService ?? defaultSimpleStorageServiceConfiguration;
+        _simpleStorageServiceConfiguration =
+            _queue?.SimpleStorageService ??
+            defaultSimpleStorageServiceConfiguration ?? DefaultSimpleStorageServiceConfiguration;
     }
 
     /// <summary>
@@ -194,11 +198,16 @@ public class QueueService : IQueueService
         // Set the logger into the instance
         _logger = logServiceProvider;
 
+        // Default the queue endpoint
+        _queue = DefaultEndpoint;
+
         // Check for a default queue
         if (defaultEndpoint is not null) _queue = GetEndpointConfiguration(defaultEndpoint);
 
         // Set the S3 configuration into the instance
-        _simpleStorageServiceConfiguration = _queue?.SimpleStorageService ?? defaultSimpleStorageServiceConfiguration;
+        _simpleStorageServiceConfiguration =
+            _queue?.SimpleStorageService ??
+            defaultSimpleStorageServiceConfiguration ?? DefaultSimpleStorageServiceConfiguration;
     }
 
     /// <summary>
@@ -235,7 +244,9 @@ public class QueueService : IQueueService
     {
         // Instantiate our publisher
         QueuePublisher<TPayload> publisher = new(_logger as ILogger<QueuePublisher<TPayload>>, _queue.GetChannel(),
-            _queue.Endpoint, _queue.SimpleStorageService ?? _simpleStorageServiceConfiguration);
+            _queue?.Endpoint ?? DefaultEndpoint?.Endpoint,
+            _queue?.SimpleStorageService ??
+            _simpleStorageServiceConfiguration ?? DefaultSimpleStorageServiceConfiguration);
 
         // We're done, publish the message
         return publisher.PublishAsync(payload);
@@ -330,11 +341,12 @@ public class QueueService : IQueueService
     /// <typeparam name="TPayload">The expected message type</typeparam>
     /// <returns>An awaitable task containing the message</returns>
     public Task SubscribeAsync<TPayload>(IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber,
-        CancellationToken stoppingToken = default) =>
-        new QueueSubscriber<TPayload>(_logger as ILogger<QueueSubscriber<TPayload>>, _queue?.GetChannel(),
-                _queue?.Endpoint,
-                _queue?.SimpleStorageService ?? _simpleStorageServiceConfiguration)
-            .SubscribeAsync(delegateSubscriber, stoppingToken);
+        CancellationToken stoppingToken = default) => new QueueSubscriber<TPayload>(
+            _logger as ILogger<QueueSubscriber<TPayload>>, _queue?.GetChannel(),
+            _queue?.Endpoint ?? DefaultEndpoint?.Endpoint,
+            _queue?.SimpleStorageService ??
+            _simpleStorageServiceConfiguration ?? DefaultSimpleStorageServiceConfiguration)
+        .SubscribeAsync(delegateSubscriber, stoppingToken);
 
     /// <summary>
     /// This method asynchronously subscribes to <paramref name="queueName" />
