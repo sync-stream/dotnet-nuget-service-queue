@@ -65,7 +65,7 @@ QueueConfiguration configuration = new QueueConfiguration
 
 ```
 
-##### ExampleQueueMessage.cs
+##### SyncStreamQueueServiceExampleMessage.cs
 ```csharp
 // Define our imports
 using SyncStream.Service.Queue;
@@ -151,7 +151,7 @@ public class ExampleQueueMessage
 
 ```
 
-##### Startup.cs
+##### SyncStreamQueueServiceExampleStartup.cs
 ```csharp
 // Define our imports
 using System.Text.Json;
@@ -237,14 +237,17 @@ public class Startup
             // We'll also need a subscriber for the queue, let's register it
             // This can also point directly to a static method or an instance method
             .UseSyncStreamQueueSubscriber<ExampleQueueMessage>(HandleQueueMessage);
+
+        // Register our example scoped service
+        services
+            .AddScoped<ISyncStreamQueueServiceExampleServiceProvider, SyncStreamQueueServiceExampleServiceProvider>();
     }
 }
 
 ```
  > *For use with `UseStartup<Startup>()`*
 
-##### ExampleQueueMessageServiceProvider.cs
-
+##### SyncStreamQueueServiceExampleServiceProvider.cs
 ```csharp
 // Define our imports
 using Microsoft.Extensions.Configuration;
@@ -254,9 +257,21 @@ using SyncStream.Service.Queue;
 namespace SyncStreamQueueServiceExample;
 
 /// <summary>
+/// This interface maintains the configuration and startup of our application
+/// </summary>
+public interface ISyncStreamQueueServiceExampleServiceProvider
+{
+    /// <summary>
+    /// This method does something
+    /// </summary>
+    /// <returns>An awaitable task with no result</returns>
+    public Task DoSomething();
+}
+
+/// <summary>
 /// This class maintains the configuration and startup of our application
 /// </summary>
-public class ExampleQueueMessageServiceProvider
+public class SyncStreamQueueServiceExampleServiceProvider
 {
     /// <summary>
     /// This property contains the application's configuration provider instance
@@ -274,7 +289,7 @@ public class ExampleQueueMessageServiceProvider
     /// </summary>
     /// <param name="configuration">The application's configuration</param>
     /// <param name="queueService">The queue service provider</param>
-    public ExampleQueueMessageServiceProvider(IConfiguration configuration,
+    public SyncStreamQueueServiceExampleServiceProvider(IConfiguration configuration,
         IQueueService<ExampleQueueMessage> queueService)
     {
         // Set the application configuration into the instance
