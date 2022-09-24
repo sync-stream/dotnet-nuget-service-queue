@@ -67,6 +67,21 @@ public interface IQueueService
     public IQueueService RegisterEndpoints(params QueueConfiguration[] endpoints);
 
     /// <summary>
+    /// This method fluidly resets the existing queue in the instance
+    /// </summary>
+    /// <param name="endpoint">The new queue endpoint to use by default</param>
+    /// <returns>The current instance</returns>
+    public IQueueService SetQueueEndpoint(QueueConfiguration endpoint);
+
+    /// <summary>
+    /// This method fluidly resets the existing S3 configuration into the instance
+    /// </summary>
+    /// <param name="simpleStorageServiceConfiguration">The new S3 configuration to use by default</param>
+    /// <returns>The current instance</returns>
+    public IQueueService SetQueueSimpleStorageServiceConfiguration(
+        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration);
+
+    /// <summary>
     /// This method asynchronously subscribes to the queue
     /// </summary>
     /// <param name="delegateSubscriber">The message worker</param>
@@ -86,28 +101,4 @@ public interface IQueueService
     /// <returns>An awaitable task containing the message</returns>
     public Task SubscribeAsync<TPayload>(string queueName,
         DelegateSubscriberAsync<TPayload> delegateSubscriber, CancellationToken stoppingToken = default);
-
-    /// <summary>
-    /// This method fluidly resets the queue's name into the instance
-    /// </summary>
-    /// <param name="queueName">The queue to publish and subscribe to</param>
-    /// <returns>This instance</returns>
-    public IQueueService WithDefaultEndpoint(string queueName);
-
-    /// <summary>
-    /// This method fluidly resets the default queue into the service
-    /// </summary>
-    /// <param name="endpoint">The queue configuration to use by default</param>
-    /// <param name="register">Denotes whether to register the endpoint if it doesn't exist or not</param>
-    /// <returns>This instance</returns>
-    public IQueueService WithDefaultEndpoint(QueueConfiguration endpoint, bool register = true);
-
-    /// <summary>
-    /// This method provides a <paramref name="simpleStorageServiceConfiguration" /> for using AWS S3 in
-    /// conjunction with RabbitMQ to reduce message size and durability
-    /// </summary>
-    /// <param name="simpleStorageServiceConfiguration">The AWS S3 configuration details</param>
-    /// <returns></returns>
-    public IQueueService WithSimpleStorageService(
-        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration);
 }

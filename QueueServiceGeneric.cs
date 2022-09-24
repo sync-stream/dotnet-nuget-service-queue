@@ -13,10 +13,10 @@ public class QueueService<TPayload> : QueueService, IQueueService<TPayload>
     /// </summary>
     /// <param name="logServiceProvider">The log service provider</param>
     /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
-    /// <param name="defaultSimpleStorageService">The default S3 configuration for the queue</param>
+    /// <param name="defaultSimpleStorageServiceConfiguration">The default S3 configuration for the queue</param>
     public QueueService(ILogger<QueueService<TPayload>> logServiceProvider, QueueConfiguration defaultEndpoint = null,
-        QueueSimpleStorageServiceConfiguration defaultSimpleStorageService = null) : base(logServiceProvider,
-        defaultEndpoint, defaultSimpleStorageService)
+        QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null) : base(logServiceProvider,
+        defaultEndpoint, defaultSimpleStorageServiceConfiguration)
     {
     }
 
@@ -25,10 +25,10 @@ public class QueueService<TPayload> : QueueService, IQueueService<TPayload>
     /// </summary>
     /// <param name="logServiceProvider">The log service provider</param>
     /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
-    /// <param name="defaultSimpleStorageService">The default S3 configuration for the queue</param>
+    /// <param name="defaultSimpleStorageServiceConfiguration">The default S3 configuration for the queue</param>
     public QueueService(ILogger<QueueService<TPayload>> logServiceProvider, string defaultEndpoint = null,
-        QueueSimpleStorageServiceConfiguration defaultSimpleStorageService = null) : base(logServiceProvider,
-        defaultEndpoint, defaultSimpleStorageService)
+        QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null) : base(logServiceProvider,
+        defaultEndpoint, defaultSimpleStorageServiceConfiguration)
     {
     }
 

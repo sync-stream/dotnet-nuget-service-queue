@@ -72,7 +72,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         try
         {
             // Send the log message
-            Logger.LogDebug(
+            Logger?.LogDebug(
                 "Message Consumer Invocation (id: {Id}, published: {Published}, alias: {Alias}, type: {Type}.{Name}<QueueMessage<{Payload}>>('{Endpoint}'))",
                 message.Id, message.Published?.ToString("O"),
                 objectName,
@@ -83,7 +83,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
             await delegateSubscriber.Invoke(message, stoppingToken);
 
             // Send the log message
-            Logger.LogDebug(
+            Logger?.LogDebug(
                 "Message Consumer Invoked (id: {Id}, published: {Published}, alias: {Alias}, type: {Type}.{Name}<QueueMessage<{Payload}>>('{Endpoint}'))",
                 message.Id, message.Published?.ToString("O"),
                 objectName,
@@ -98,7 +98,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
                 await AcknowledgeSimpleStorageServiceMessageAsync(objectName);
 
             // Send the log message
-            Logger.LogDebug(
+            Logger?.LogDebug(
                 "Message Acknowledged (id: {Id}, published: {Published}, consumed: {Consumed}, alias: {Alias}, type: {Type}.{Name}<QueueMessage<{Payload}>>('{Endpoint}'))",
                 message.Id, message.Published?.ToString("O"),
                 message.Consumed?.ToString("O"),
@@ -116,7 +116,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
             Channel?.BasicReject(deliveryTag, false);
 
             // Send the log message
-            Logger.LogError(subscriberException,
+            Logger?.LogError(subscriberException,
                 "Message Consumer Rejected (id: {Id}, published: {Published}, alias: {Alias}, type: {Type}.{Name}<QueueMessage<{Payload}>>('{Endpoint}'))",
                 message.Id, message.Published?.ToString("O"),
                 objectName,
@@ -136,7 +136,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber, CancellationToken stoppingToken = default)
     {
         // Send the log message
-        Logger.LogInformation("Message Incoming");
+        Logger?.LogInformation("Message Incoming");
 
         // Try to deserialize the message and execute the subscriber
         try
@@ -165,7 +165,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
             else message = ParseIncomingMessage(arguments);
 
             // Send the log message
-            Logger.LogDebug("Message Received (id: {MessageId}, published: {MessagePublished})",
+            Logger?.LogDebug("Message Received (id: {MessageId}, published: {MessagePublished})",
                 message.Id, message.Published);
 
             // We're done execute our message handle and return its task
@@ -180,7 +180,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
             Channel?.BasicReject(arguments.DeliveryTag, false);
 
             // Send the log message
-            Logger.LogError(exception, "Message Rejected");
+            Logger?.LogError(exception, "Message Rejected");
         }
     }
 
@@ -244,7 +244,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         };
 
         // Send the log message
-        Logger.LogDebug("Consuming {Endpoint}", Endpoint);
+        Logger?.LogDebug("Consuming {Endpoint}", Endpoint);
 
         // Consume messages from the queue
         Channel?.BasicConsume(_consumer, Endpoint);

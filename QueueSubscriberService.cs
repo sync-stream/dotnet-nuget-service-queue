@@ -31,17 +31,19 @@ public class QueueSubscriberService<TPayload> : BackgroundService
     /// <param name="logServiceProvider">The log service provider to use in the worker</param>
     /// <param name="serviceProvider">The external service provider</param>
     /// <param name="subscriber">The asynchronous subscriber delegate</param>
-    /// <param name="defaultEndpoint">Optional RabbitMQ endpoint definition</param>
+    /// <param name="defaultEndpoint">Optional, RabbitMQ endpoint definition</param>
+    /// <param name="defaultSimpleStorageServiceConfiguration">Optional, S3 configuration to use</param>
     public QueueSubscriberService(ILogger<QueueSubscriberService<TPayload>> logServiceProvider,
         IServiceProvider serviceProvider, IQueueService.DelegateSubscriberAsync<TPayload> subscriber,
-        QueueConfiguration defaultEndpoint = null)
+        QueueConfiguration defaultEndpoint = null,
+        QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null)
     {
         // Set the log service provider into the instance
         _logger = logServiceProvider;
 
         // Set the queue service provider into the instance
         _service = new QueueService<TPayload>(serviceProvider.GetService<ILogger<QueueService<TPayload>>>(),
-            defaultEndpoint);
+            defaultEndpoint, defaultSimpleStorageServiceConfiguration);
 
         // Set the subscriber into the instance
         _subscriber = subscriber;
@@ -53,17 +55,19 @@ public class QueueSubscriberService<TPayload> : BackgroundService
     /// <param name="logServiceProvider">The log service provider to use in the worker</param>
     /// <param name="serviceProvider">The external service provider</param>
     /// <param name="subscriber">The asynchronous subscriber delegate</param>
-    /// <param name="defaultEndpoint">Optional RabbitMQ endpoint name</param>
+    /// <param name="defaultEndpoint">Optional, RabbitMQ endpoint name</param>
+    /// <param name="defaultSimpleStorageServiceConfiguration">Optional, S3 configuration</param>
     public QueueSubscriberService(ILogger<QueueSubscriberService<TPayload>> logServiceProvider,
         IServiceProvider serviceProvider, IQueueService.DelegateSubscriberAsync<TPayload> subscriber,
-        string defaultEndpoint = null)
+        string defaultEndpoint = null,
+        QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null)
     {
         // Set the log service provider into the instance
         _logger = logServiceProvider;
 
         // Set the queue service provider into the instance
         _service = new QueueService<TPayload>(serviceProvider.GetService<ILogger<QueueService<TPayload>>>(),
-            defaultEndpoint);
+            defaultEndpoint, defaultSimpleStorageServiceConfiguration);
 
         // Set the subscriber into the instance
         _subscriber = subscriber;

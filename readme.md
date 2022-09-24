@@ -18,7 +18,7 @@ instance.
 
 ## Example
 
-##### Queue Configuration
+##### Queue Configuration C#
 ```csharp
 QueueConfiguration configuration = new QueueConfiguration
 {
@@ -40,4 +40,27 @@ QueueConfiguration configuration = new QueueConfiguration
   Password = "SuP3Rs3cR3tP4$5w0rd",
   Username =  "me"
 };
+```
+
+##### Queue Configuration `appsettings.json`
+```json lines
+{
+  "Queues": [
+    {
+      "Name": "friendly-name",
+      "Endpoint": "name-in-rabbit-mq",
+      "Hostname": "192.168.1.1",
+      "Secure": false,
+      "SimpleStorageService": {
+        "AccessKeyId": "<aws-access_key_id>",
+        "Bucket": "<bucket-name>",
+        "KmsKeyId": "<aws-kms-key-id>",
+        "Region": "us-east-1",
+        "SecretAccessKey": "<aws-secret_access_key>"
+      },
+      "Password": "SuP3Rs3cR3tP4$5w0rd",
+      "Username": "me"
+    }
+  ],
+}
 ```
