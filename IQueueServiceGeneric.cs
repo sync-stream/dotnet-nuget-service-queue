@@ -8,6 +8,21 @@ namespace SyncStream.Service.Queue;
 public interface IQueueService<TPayload> : IQueueService
 {
     /// <summary>
+    /// This method asynchronously publishes a message a queue
+    /// </summary>
+    /// <param name="payload">The message payload to publish</param>
+    /// <returns>An awaitable task containing the published message</returns>
+    public Task<QueueMessage<TPayload>> PublishAsync(TPayload payload);
+
+    /// <summary>
+    /// This method asynchronously publishes a message to <paramref name="queueName" />
+    /// </summary>
+    /// <param name="queueName">The queue to publish the <paramref name="payload" /> to</param>
+    /// <param name="payload">The message payload to publish</param>
+    /// <returns>An awaitable task containing the published message</returns>
+    public Task<QueueMessage<TPayload>> PublishAsync(string queueName, TPayload payload);
+
+    /// <summary>
     /// This method asynchronously subscribes to the queue
     /// </summary>
     /// <param name="delegateSubscriber">The message worker</param>

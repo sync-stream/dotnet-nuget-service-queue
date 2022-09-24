@@ -48,6 +48,13 @@ public class QueueMessage<TPayload>
     public DateTime? Published { get; set; }
 
     /// <summary>
+    /// This property contains the instance of our S3 alias message
+    /// </summary>
+    [JsonIgnore]
+    [XmlIgnore]
+    public SimpleStorageServiceQueueMessage<TPayload> SimpleStorageServiceMessage { get; set; }
+
+    /// <summary>
     /// This method instantiates an empty Queue Message
     /// </summary>
     public QueueMessage()

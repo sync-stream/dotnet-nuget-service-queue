@@ -794,3 +794,5 @@ e2e/*.map
 # End of https://www.toptal.com/developers/gitignore/api/angular
 
 https:
+Program.cs
+ExampleQueueMessage.cs

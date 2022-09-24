@@ -159,14 +159,21 @@ public class QueueService : IQueueService
     /// This method instantiates our service with a RabbitMQ Connection
     /// </summary>
     /// <param name="logServiceProvider">The log service provider</param>
-    /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
-    /// <param name="defaultSimpleStorageServiceConfiguration">The default S3 configuration for the queue</param>
-    public QueueService(ILogger<QueueService> logServiceProvider, QueueConfiguration defaultEndpoint = null,
-        QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null)
+    public QueueService(ILogger<QueueService> logServiceProvider)
     {
         // Set the logger into the instance
         _logger = logServiceProvider;
+    }
 
+    /// <summary>
+    /// This method instantiates our service with a RabbitMQ Connection
+    /// </summary>
+    /// <param name="logServiceProvider">The log service provider</param>
+    /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
+    /// <param name="defaultSimpleStorageServiceConfiguration">The default S3 configuration for the queue</param>
+    public QueueService(ILogger<QueueService> logServiceProvider, QueueConfiguration defaultEndpoint = null,
+        QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null) : this(logServiceProvider)
+    {
         // Default the queue endpoint
         _queue = DefaultEndpoint;
 

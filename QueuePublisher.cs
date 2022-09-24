@@ -58,8 +58,17 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
 
         // Check for S3 capabilities
         if (IsQueueBackedBySimpleStorageService())
-            await WriteSimpleStorageServiceMessageAsync(
-                message.ToSimpleStorageServiceQueueMessage(GenerateObjectName(message.Id)));
+        {
+            // Localize the S3 message
+            SimpleStorageServiceQueueMessage<TPayload> simpleStorageServiceMessage =
+                message.ToSimpleStorageServiceQueueMessage(GenerateObjectName(message.Id));
+
+            // Commit the S3 message to storage
+            await WriteSimpleStorageServiceMessageAsync(simpleStorageServiceMessage);
+
+            // Set the S3 message into the message
+            message.SimpleStorageServiceMessage = simpleStorageServiceMessage;
+        }
 
         // We're done, send the response
         return message;

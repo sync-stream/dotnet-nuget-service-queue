@@ -27,11 +27,39 @@ public static class QueueServiceCollectionExtensions
     }
 
     /// <summary>
+    ///     This method registers the global (default) queue to use with the QueueService from the
+    ///     <paramref name="section"/> of the application's <paramref name="configuration" /> provider instance
+    /// </summary>
+    /// <param name="instance">The current IServiceCollection instance</param>
+    /// <param name="configuration">The application's configuration provider</param>
+    /// <param name="section">
+    ///     The section in <paramref name="configuration" />
+    ///     where the queue endpoint configuration is stored
+    /// </param>
+    /// <returns>The current IServiceCollection instance</returns>
+    public static IServiceCollection UseGlobalSyncStreamQueueEndpoint(this IServiceCollection instance,
+        IConfiguration configuration, string section) => UseGlobalSyncStreamQueueEndpoint(instance,
+        configuration.GetSection(section).Get<QueueConfiguration>());
+
+    /// <summary>
+    ///     This method registers the global (default) queue to use with the QueueService from
+    ///     the <paramref name="section" /> of the application's configuration provider instance
+    /// </summary>
+    /// <param name="instance">The current IServiceCollection instance</param>
+    /// <param name="section">
+    ///     The section in the application's configuration provider where the queue
+    ///     endpoint configuration is stored
+    /// </param>
+    /// <returns>The current instance of IServiceCollection</returns>
+    public static IServiceCollection UseGlobalSyncStreamQueueEndpoint(this IServiceCollection instance,
+        IConfigurationSection section) => UseGlobalSyncStreamQueueEndpoint(instance, section.Get<QueueConfiguration>());
+
+    /// <summary>
     /// This method registers the global (default) S3 configuration to use with the QueueService
     /// </summary>
-    /// <param name="instance"></param>
-    /// <param name="simpleStorageServiceConfiguration"></param>
-    /// <returns></returns>
+    /// <param name="instance">The current IServiceCollection instance</param>
+    /// <param name="simpleStorageServiceConfiguration">The AWS S3 configuration to use</param>
+    /// <returns>The current IServiceCollection instance</returns>
     public static IServiceCollection UseGlobalSyncStreamQueueSimpleStorageService(this IServiceCollection instance,
         QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration)
     {
@@ -41,6 +69,64 @@ public static class QueueServiceCollectionExtensions
         // We're done, return the IServiceCollection instance
         return instance;
     }
+
+    /// <summary>
+    /// This method registers a scoped publisher service with the <paramref name="instance" />
+    /// </summary>
+    /// <param name="instance">The current IServiceCollection instance</param>
+    /// <typeparam name="TPayload">The expected payload type to publish</typeparam>
+    /// <returns>The current IServiceCollection instance</returns>
+    public static IServiceCollection UseScopedSyncStreamQueuePublisher<TPayload>(this IServiceCollection instance)
+    {
+        // Register the scoped service
+        instance.AddScoped<IQueueService<TPayload>, QueueService<TPayload>>();
+
+        // We're done, return the IServiceCollection instance
+        return instance;
+    }
+
+    /// <summary>
+    /// This method registers a singleton publisher service with the <paramref name="instance" />
+    /// </summary>
+    /// <param name="instance">The current IServiceCollection instance</param>
+    /// <typeparam name="TPayload">The expected payload type to publish</typeparam>
+    /// <returns>The current IServiceCollection instance</returns>
+    public static IServiceCollection UseSingletonSyncStreamQueuePublisher<TPayload>(this IServiceCollection instance)
+    {
+        // Register the scoped service
+        instance.AddSingleton<IQueueService<TPayload>, QueueService<TPayload>>();
+
+        // We're done, return the IServiceCollection instance
+        return instance;
+    }
+
+    /// <summary>
+    ///     This method registers the global (default) S3 configuration to use with the QueueService from the
+    ///     <paramref name="section"/> of the application's <paramref name="configuration" /> provider instance
+    /// </summary>
+    /// <param name="instance">The current IServiceCollection instance</param>
+    /// <param name="configuration">The application's configuration provider</param>
+    /// <param name="section">
+    ///     The section in <paramref name="configuration" />
+    ///     where the AWS S3 configuration is stored
+    /// </param>
+    /// <returns>The current IServiceCollection instance</returns>
+    public static IServiceCollection UseGlobalSyncStreamQueueSimpleStorageService(this IServiceCollection instance,
+        IConfiguration configuration, string section) => UseGlobalSyncStreamQueueSimpleStorageService(instance,
+        configuration.GetSection(section).Get<QueueSimpleStorageServiceConfiguration>());
+
+    /// <summary>
+    ///     This method registers the global (default) S3 configuration to use with the QueueService
+    ///     from the <paramref name="section" /> of the application's configuration provider instance
+    /// </summary>
+    /// <param name="instance">The current IServiceCollection instance</param>
+    /// <param name="section">
+    ///     The section in the application's configuration provider where the AWS S3 configuration is stored
+    /// </param>
+    /// <returns>The current instance of IServiceCollection</returns>
+    public static IServiceCollection UseGlobalSyncStreamQueueSimpleStorageService(this IServiceCollection instance,
+        IConfigurationSection section) =>
+        UseGlobalSyncStreamQueueSimpleStorageService(instance, section.Get<QueueSimpleStorageServiceConfiguration>());
 
     /// <summary>
     /// This method registers an endpoint configuration with the RabbitMQ service provider
@@ -137,14 +223,30 @@ public static class QueueServiceCollectionExtensions
     /// </summary>
     /// <param name="instance">The current instance of IServiceCollection</param>
     /// <param name="subscriber">The asynchronous subscriber delegate</param>
-    /// <param name="defaultEndpoint">Optional, endpoint definition</param>
+    /// <typeparam name="TPayload">The expected message type from the queue</typeparam>
+    /// <returns>The current instance of IServiceCollection</returns>
+    public static IServiceCollection UseSyncStreamQueueSubscriber<TPayload>(this IServiceCollection instance, IQueueService.DelegateSubscriberAsync<TPayload> subscriber)
+    {
+        // Add our hosted service
+        instance.AddHostedService(provider =>
+            new QueueSubscriberService<TPayload>(provider.GetService<ILogger<QueueSubscriberService<TPayload>>>(), provider, subscriber));
+
+        // We're done, return the IServiceCollection
+        return instance;
+    }
+
+    /// <summary>
+    /// This method registers an asynchronous subscriber for a RabbitMQ endpoint
+    /// </summary>
+    /// <param name="instance">The current instance of IServiceCollection</param>
+    /// <param name="subscriber">The asynchronous subscriber delegate</param>
+    /// <param name="defaultEndpoint">The queue endpoint definition</param>
     /// <param name="defaultSimpleStorageServiceConfiguration">Optional, S3 configuration</param>
     /// <typeparam name="TPayload">The expected message type from the queue</typeparam>
     /// <returns>The current instance of IServiceCollection</returns>
-    public static IServiceCollection UseSyncStreamSyncStreamSubscriber<TPayload>(this IServiceCollection instance,
+    public static IServiceCollection UseSyncStreamQueueSubscriber<TPayload>(this IServiceCollection instance,
         IQueueService.DelegateSubscriberAsync<TPayload> subscriber,
-        QueueConfiguration defaultEndpoint = null,
-        QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null)
+        QueueConfiguration defaultEndpoint, QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null)
     {
         // Add our hosted service
         instance.AddHostedService(provider =>
@@ -160,12 +262,12 @@ public static class QueueServiceCollectionExtensions
     /// </summary>
     /// <param name="instance">The current instance of IServiceCollection</param>
     /// <param name="subscriber">The asynchronous subscriber delegate</param>
-    /// <param name="defaultEndpoint">Optional, endpoint name</param>
+    /// <param name="defaultEndpoint">The queue endpoint name</param>
     /// <param name="defaultSimpleStorageServiceConfiguration">Optional, S3 configuration</param>
     /// <typeparam name="TPayload">The expected message type from the queue</typeparam>
     /// <returns>The current instance of IServiceCollection</returns>
     public static IServiceCollection UseSyncStreamQueueSubscriber<TPayload>(this IServiceCollection instance,
-        IQueueService.DelegateSubscriberAsync<TPayload> subscriber, string defaultEndpoint = null,
+        IQueueService.DelegateSubscriberAsync<TPayload> subscriber, string defaultEndpoint,
         QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null)
     {
         // Add our hosted service
@@ -174,6 +276,21 @@ public static class QueueServiceCollectionExtensions
                 provider, subscriber, defaultEndpoint, defaultSimpleStorageServiceConfiguration));
 
         // We're done, return the IServiceCollection
+        return instance;
+    }
+
+    /// <summary>
+    /// This method registers a transient publisher service with the <paramref name="instance" />
+    /// </summary>
+    /// <param name="instance">The current IServiceCollection instance</param>
+    /// <typeparam name="TPayload">The expected payload type to publish</typeparam>
+    /// <returns>The current IServiceCollection instance</returns>
+    public static IServiceCollection UseTransientSyncStreamQueuePublisher<TPayload>(this IServiceCollection instance)
+    {
+        // Register the scoped service
+        instance.AddTransient<IQueueService<TPayload>, QueueService<TPayload>>();
+
+        // We're done, return the IServiceCollection instance
         return instance;
     }
 }

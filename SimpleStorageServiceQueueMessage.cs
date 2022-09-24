@@ -59,6 +59,8 @@ public class SimpleStorageServiceQueueMessage<TPayload> : QueueMessage<string>
         Payload = Envelope,
 
         // Set the published timestamp into the response
-        Published = Published
+        Published = Published,
+        // Set the S3 message into the instance
+        SimpleStorageServiceMessage = this
     };
 }
