@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
+using SyncStream.Cryptography;
 using SyncStream.Serializer;
 
 // Define our namespace
@@ -19,9 +20,11 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
     /// <param name="channel">The connection channel to the queue</param>
     /// <param name="endpoint">The queue endpoint we're connected to</param>
     /// <param name="simpleStorageServiceConfiguration">Optional, S3 storage configuration</param>
+    /// <param name="encryptionConfiguration">The encryption configuration for the queue</param>
     public QueuePublisher(ILogger<QueuePublisher<TPayload>> logServiceProvider, IModel channel, string endpoint,
-        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration = null) : base(logServiceProvider,
-        channel, endpoint, simpleStorageServiceConfiguration)
+        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration = null,
+        QueueServiceEncryptionConfiguration encryptionConfiguration = null) : base(logServiceProvider, channel,
+        endpoint, simpleStorageServiceConfiguration, encryptionConfiguration)
     {
     }
 
@@ -36,7 +39,10 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
         QueueMessage<TPayload> message = new(payload);
 
         // Serialize the message
-        string json = JsonSerializer.Serialize(message);
+        string json = EncryptionConfiguration is null
+            ? JsonSerializer.Serialize(message)
+            : await CryptographyService.EncryptAsync(message, key: EncryptionConfiguration.Secret,
+                passes: EncryptionConfiguration.Passes);
 
         // Define our message body
         byte[] body = Encoding.UTF8.GetBytes(json);
@@ -51,7 +57,7 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
         properties.DeliveryMode = 2;
 
         // Publish the message
-        Channel.BasicPublish("", Endpoint, true, properties, body);
+        Channel.BasicPublish("", EndpointConfiguration, true, properties, body);
 
         // Set the published timestamp into the new Queue Message
         message.Published = DateTime.UtcNow;

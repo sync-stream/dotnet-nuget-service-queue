@@ -48,6 +48,10 @@ QueueConfiguration configuration = new QueueConfiguration
 {
   "Queue": {
     "Name": "friendly-name",
+    "Encryption": {
+      "Passes": 1,
+      "Secret": "sGhA5qK39LkSy85$@R$r%249@*!Rjx3G"
+    },
     "Endpoint": "name-in-rabbit-mq",
     "Hostname": "192.168.1.1",
     "Secure": false,
@@ -216,6 +220,9 @@ public class Startup
     {
         // Setup our queue services
         services
+
+             // We want to encrypt the messages going to RabbitMQ
+            .UseGlobalSyncStreamQueueEncryption(Configuration, "Queue:Encryption")
 
             // We only have one queue configured in appsettings.json, lets set it up as the global queue
             .UseGlobalSyncStreamQueueEndpoint(Configuration, "Queue")

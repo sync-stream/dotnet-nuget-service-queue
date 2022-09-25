@@ -21,11 +21,9 @@ public class QueueService<TPayload> : QueueService, IQueueService<TPayload>
     /// </summary>
     /// <param name="logServiceProvider">The log service provider</param>
     /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
-    /// <param name="defaultSimpleStorageServiceConfiguration">The default S3 configuration for the queue</param>
-    public QueueService(ILogger<QueueService<TPayload>> logServiceProvider, QueueConfiguration defaultEndpoint = null,
-        QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null) : base(
-        logServiceProvider,
-        defaultEndpoint, defaultSimpleStorageServiceConfiguration)
+    /// <param name="defaultSimpleStorageServiceConfiguration">Optional, S3 configuration for the queue</param>
+    /// <param name="defaultEncryptionConfiguration">Optional, queue encryption configuration</param>
+    public QueueService(ILogger<QueueService<TPayload>> logServiceProvider, QueueConfiguration defaultEndpoint = null, QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null, QueueServiceEncryptionConfiguration defaultEncryptionConfiguration = null) : base(logServiceProvider, defaultEndpoint, defaultSimpleStorageServiceConfiguration, defaultEncryptionConfiguration)
     {
     }
 
@@ -35,10 +33,8 @@ public class QueueService<TPayload> : QueueService, IQueueService<TPayload>
     /// <param name="logServiceProvider">The log service provider</param>
     /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
     /// <param name="defaultSimpleStorageServiceConfiguration">The default S3 configuration for the queue</param>
-    public QueueService(ILogger<QueueService<TPayload>> logServiceProvider, string defaultEndpoint = null,
-        QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null) : base(
-        logServiceProvider,
-        defaultEndpoint, defaultSimpleStorageServiceConfiguration)
+    /// <param name="defaultEncryptionConfiguration">Optional, queue encryption configuration</param>
+    public QueueService(ILogger<QueueService<TPayload>> logServiceProvider, string defaultEndpoint = null, QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null, QueueServiceEncryptionConfiguration defaultEncryptionConfiguration = null) : base(logServiceProvider, defaultEndpoint, defaultSimpleStorageServiceConfiguration, defaultEncryptionConfiguration)
     {
     }
 

@@ -26,6 +26,13 @@ public class QueueSimpleStorageServiceConfiguration
     public string Bucket { get; set; }
 
     /// <summary>
+    /// This method denotes whether the JSON stored in S3 should be encrypted or not
+    /// </summary>
+    [JsonPropertyName("EncryptJson")]
+    [XmlAttribute("encryptJson")]
+    public bool EncryptJson { get; set; }
+
+    /// <summary>
     /// This property contains the unique ID of the AWS Key Management Service Key used to encrypt objects in the bucket
     /// </summary>
     [JsonPropertyName("KmsKeyId")]

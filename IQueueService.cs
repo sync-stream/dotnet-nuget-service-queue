@@ -67,6 +67,13 @@ public interface IQueueService
     public IQueueService RegisterEndpoints(params QueueConfiguration[] endpoints);
 
     /// <summary>
+    /// This method fluidly resets the queue configuration into the instance
+    /// </summary>
+    /// <param name="configuration">The queue encryption configuration</param>
+    /// <returns>The current instance</returns>
+    public IQueueService SetQueueEncryptionConfiguration(QueueServiceEncryptionConfiguration configuration);
+
+    /// <summary>
     /// This method fluidly resets the existing queue in the instance
     /// </summary>
     /// <param name="endpoint">The new queue endpoint to use by default</param>

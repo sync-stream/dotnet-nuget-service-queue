@@ -62,6 +62,9 @@ public class Startup
         // Setup our queue services
         services
 
+             // We want to encrypt the messages going to RabbitMQ
+            .UseGlobalSyncStreamQueueEncryption(Configuration, "Queue:Encryption")
+
             // We only have one queue configured in appsettings.json, lets set it up as the global queue
             .UseGlobalSyncStreamQueueEndpoint(Configuration, "Queue")
 

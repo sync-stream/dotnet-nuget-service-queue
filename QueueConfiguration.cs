@@ -15,13 +15,13 @@ namespace SyncStream.Service.Queue;
 public class QueueConfiguration
 {
     /// <summary>
-    /// This property denotes whether the queue is enabled or not
+    /// This property contains the encryption configuration for the queue endpoint
     /// </summary>
-    [JsonPropertyName("Enabled")]
-    [XmlAttribute("enabled")]
-    public bool Enabled { get; set; } = true;
+    [JsonPropertyName("Encryption")]
+    [XmlElement("Encryption")]
+    public QueueServiceEncryptionConfiguration Encryption { get; set; }
 
-    /// <summary>
+        /// <summary>
     /// This property contains the RabbitMQ name for the queue
     /// </summary>
     [JsonPropertyName("Endpoint")]

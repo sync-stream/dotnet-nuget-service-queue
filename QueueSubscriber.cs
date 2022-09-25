@@ -25,9 +25,11 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
     /// <param name="channel">The queue channel the subscriber is consuming</param>
     /// <param name="endpoint">The queue endpoint to subscribe to</param>
     /// <param name="simpleStorageServiceConfiguration">Optional, AWS S3 configuration details for S3-backed queue messages</param>
+    /// <param name="encryptionConfiguration">The encryption configuration for the queue</param>
     public QueueSubscriber(ILogger<QueueSubscriber<TPayload>> logServiceProvider, IModel channel, string endpoint,
-        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration = null) : base(logServiceProvider,
-        channel, endpoint, simpleStorageServiceConfiguration)
+        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration = null,
+        QueueServiceEncryptionConfiguration encryptionConfiguration = null) : base(logServiceProvider, channel,
+        endpoint, simpleStorageServiceConfiguration, encryptionConfiguration)
     {
         // Set the consumer into the instance
         _consumer = new(Channel);
@@ -77,7 +79,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
                 message.Id, message.Published?.ToString("O"),
                 objectName,
                 delegateSubscriber.Method.DeclaringType?.Name ?? "Delegate", delegateSubscriber.Method.Name,
-                typeof(TPayload), Endpoint);
+                typeof(TPayload), EndpointConfiguration);
 
             // Execute the subscriber
             await delegateSubscriber.Invoke(message, stoppingToken);
@@ -88,7 +90,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
                 message.Id, message.Published?.ToString("O"),
                 objectName,
                 delegateSubscriber.Method.DeclaringType?.Name ?? "Delegate", delegateSubscriber.Method.Name,
-                typeof(TPayload), Endpoint);
+                typeof(TPayload), EndpointConfiguration);
 
             // We're done, acknowledge the message
             Channel?.BasicAck(deliveryTag, false);
@@ -104,7 +106,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
                 message.Consumed?.ToString("O"),
                 objectName,
                 delegateSubscriber.Method.DeclaringType?.Name ?? "Delegate", delegateSubscriber.Method.Name,
-                typeof(TPayload), Endpoint);
+                typeof(TPayload), EndpointConfiguration);
         }
         catch (Exception subscriberException)
         {
@@ -121,7 +123,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
                 message.Id, message.Published?.ToString("O"),
                 objectName,
                 delegateSubscriber.Method.DeclaringType?.Name ?? "Delegate", delegateSubscriber.Method.Name,
-                typeof(TPayload), Endpoint);
+                typeof(TPayload), EndpointConfiguration);
         }
     }
 
@@ -244,10 +246,10 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         };
 
         // Send the log message
-        Logger?.LogDebug("Consuming {Endpoint}", Endpoint);
+        Logger?.LogDebug("Consuming {Endpoint}", EndpointConfiguration);
 
         // Consume messages from the queue
-        Channel?.BasicConsume(_consumer, Endpoint);
+        Channel?.BasicConsume(_consumer, EndpointConfiguration);
 
         // We're done, return the completed task
         return Task.CompletedTask;
