@@ -1,4 +1,4 @@
-﻿using SyncStream.Aws.S3.Client.Config;
+﻿using SyncStream.Aws.S3.Client.Configuration;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -6,7 +6,7 @@ namespace SyncStream.Service.Queue;
 /// <summary>
 /// This class maintains the structure of our S3ClientConfig extensions
 /// </summary>
-public static class QueueServiceS3ClientConfigExtensions
+public static class QueueServiceAwsSimpleStorageServiceClientConfigurationExtensions
 {
     /// <summary>
     /// This method provides a conversion from the queue's S3 configuration to the S3 client's
@@ -14,7 +14,8 @@ public static class QueueServiceS3ClientConfigExtensions
     /// <param name="instance">The current instance of S3ClientConfig</param>
     /// <param name="simpleStorageServiceConfiguration">The queue's S3 configuration</param>
     /// <returns>The current instance of S3ClientConfig with the properties updated</returns>
-    public static S3ClientConfig FromQueueServiceConfiguration(this S3ClientConfig instance,
+    public static AwsSimpleStorageServiceClientConfiguration FromQueueServiceConfiguration(
+        this AwsSimpleStorageServiceClientConfiguration instance,
         QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration)
     {
         // Set the access key ID into the S3 client configuration object instance

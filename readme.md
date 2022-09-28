@@ -23,8 +23,16 @@ instance.
 QueueConfiguration configuration = new QueueConfiguration
 {
   Name = "friendly-name",
+  
+  // Include this to encable encrypted messages on RabbitMQ
+  Encryption = new QueueEncryptionConfiguration
+  {
+      Passes = 1,
+      Secret = "sGhA5qK39LkSy85$@R$r%249@*!Rjx3G"
+  },
+  
   Endpoint = "name-in-rabbit-mq",
-  Hostname = "192.168.1.1",
+  Hostname = "192.168.1.15",
   Secure = false,
   
   // Include this to enable S3 aliasing
@@ -32,6 +40,13 @@ QueueConfiguration configuration = new QueueConfiguration
   {
     AccessKeyId = "<aws-access_key_id>",
     Bucket = "<bucket-name>",
+    
+    // Set this to true to encrypt the JSON objects
+    // uploaded to S3.  Please keep in mind that, when
+    // true, the object contents won't be searchable by
+    // Athena
+    EncryptObjects = false,
+    
     KmsKeyId = "<aws-kms-key-id>",
     Region = "us-east-1",
     SecretAccessKey = "<aws-secret_access_key>"
@@ -58,6 +73,7 @@ QueueConfiguration configuration = new QueueConfiguration
     "SimpleStorageService": {
       "AccessKeyId": "<aws-access_key_id>",
       "Bucket": "<bucket-name>",
+      "EncryptObjects": false,
       "KmsKeyId": "<aws-kms-key-id>",
       "Region": "us-east-1",
       "SecretAccessKey": "<aws-secret_access_key>"

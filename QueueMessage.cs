@@ -57,9 +57,7 @@ public class QueueMessage<TPayload>
     /// <summary>
     /// This method instantiates an empty Queue Message
     /// </summary>
-    public QueueMessage()
-    {
-    }
+    public QueueMessage() { }
 
     /// <summary>
     /// This method instantiates a new Queue Message with a <paramref name="payload" />
@@ -69,17 +67,41 @@ public class QueueMessage<TPayload>
         WithPayload(payload);
 
     /// <summary>
-    /// This method resets the <paramref name="payload" /> into the instance
+    ///     This method converts the instance to a new encrypted queue message
     /// </summary>
-    /// <param name="payload">The message itself</param>
-    /// <returns>This instance</returns>
-    public QueueMessage<TPayload> WithPayload(TPayload payload)
-    {
-        // Reset the payload into the instance
-        Payload = payload;
+    /// <param name="encryptionConfiguration">The cryptographic settings</param>
+    /// <returns>The encrypted queue message object</returns>
+    public EncryptedQueueMessage<TPayload> ToEncryptedQueueMessage(
+        QueueServiceEncryptionConfiguration encryptionConfiguration) => new(this, encryptionConfiguration);
 
-        // We're done, return the instance
-        return this;
+    /// <summary>
+    ///     THis method asynchronously converts the instance to a new encrypted queue message
+    /// </summary>
+    /// <param name="encryptionConfiguration">The cryptographic settings</param>
+    /// <returns>An awaitable task containing the encrypted queue message object</returns>
+    public async Task<EncryptedQueueMessage<TPayload>> ToEncryptedQueueMessageAsync(QueueServiceEncryptionConfiguration encryptionConfiguration)
+    {
+        // Define our response
+        EncryptedQueueMessage<TPayload> encryptedQueueMessage = new()
+        {
+            // Set the consumed timestamp into the response
+            Consumed = Consumed,
+
+            // Set the creation timestamp into the response
+            Created = Created,
+
+            // Set the unique ID into the response
+            Id = Id,
+
+            // Set the publish timestamp into the response
+            Published = Published
+        };
+
+        // Encrypt the payload into the response
+        await encryptedQueueMessage.WithPayloadAsync(Payload, encryptionConfiguration);
+
+        // We're done, send the encrypted queue message
+        return encryptedQueueMessage;
     }
 
     /// <summary>
@@ -120,4 +142,18 @@ public class QueueMessage<TPayload>
         // Set the rejection reason into the response
         RejectedReason = reason
     };
+
+    /// <summary>
+    /// This method resets the <paramref name="payload" /> into the instance
+    /// </summary>
+    /// <param name="payload">The message itself</param>
+    /// <returns>This instance</returns>
+    public QueueMessage<TPayload> WithPayload(TPayload payload)
+    {
+        // Reset the payload into the instance
+        Payload = payload;
+
+        // We're done, return the instance
+        return this;
+    }
 }

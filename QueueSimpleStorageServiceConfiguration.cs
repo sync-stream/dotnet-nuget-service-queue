@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using System.Xml.Serialization;
-using SyncStream.Aws.S3.Client.Config;
+using SyncStream.Aws.S3.Client.Configuration;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -28,9 +28,9 @@ public class QueueSimpleStorageServiceConfiguration
     /// <summary>
     /// This method denotes whether the JSON stored in S3 should be encrypted or not
     /// </summary>
-    [JsonPropertyName("EncryptJson")]
-    [XmlAttribute("encryptJson")]
-    public bool EncryptJson { get; set; }
+    [JsonPropertyName("EncryptObjects")]
+    [XmlAttribute("encryptObjects")]
+    public bool EncryptObjects { get; set; }
 
     /// <summary>
     /// This property contains the unique ID of the AWS Key Management Service Key used to encrypt objects in the bucket
@@ -57,7 +57,7 @@ public class QueueSimpleStorageServiceConfiguration
     /// This method generates an S3 client configuration object from the instance
     /// </summary>
     /// <returns>The instantiated S3 client configuration</returns>
-    public S3ClientConfig ToClientConfiguration() => new()
+    public AwsSimpleStorageServiceClientConfiguration ToClientConfiguration() => new()
     {
         // Set the access key ID into the response configuration
         AccessKeyId = AccessKeyId,

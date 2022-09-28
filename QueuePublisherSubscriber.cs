@@ -2,6 +2,7 @@
 using RabbitMQ.Client;
 using SyncStream.Aws.S3.Client;
 using SyncStream.Cryptography;
+using SyncStream.Serializer;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -73,23 +74,22 @@ public abstract class QueuePublisherSubscriber<TPayload>
         // Check for S3 capabilities
         if (!IsQueueBackedBySimpleStorageService()) return null;
 
-        // Check for encryption capabilities then encrypt the S3 JSON and upload it
-        if (EncryptionConfiguration is not null && SimpleStorageServiceConfiguration.EncryptJson)
+        // Check for encryption
+        if (EncryptionConfiguration is not null && SimpleStorageServiceConfiguration.EncryptObjects)
         {
-            // Download the object from S3
-            await using Stream objectStream = await S3Client.DownloadObjectAsync(objectName,
-                SimpleStorageServiceConfiguration.ToClientConfiguration());
+            // Download the message
+            SimpleStorageServiceEncryptedQueueMessage<TPayload> encryptedMessage =
+                await AwsSimpleStorageServiceClient
+                    .DownloadObjectAsync<SimpleStorageServiceEncryptedQueueMessage<TPayload>>(objectName,
+                        SerializerFormat.Json, SimpleStorageServiceConfiguration.ToClientConfiguration());
 
-            // Create our reader
-            using StreamReader streamReader = new(objectStream);
-
-            // We're done, decrypt the object then return
-            return await CryptographyService.DecryptAsync<SimpleStorageServiceQueueMessage<TPayload>>(
-                await streamReader.ReadToEndAsync(), key: EncryptionConfiguration.Secret);
+            // We're done, return the decrypted message
+            return await encryptedMessage.ToSimpleStorageServiceQueueMessageAsync(EncryptionConfiguration);
         }
 
         // We're done, download the object from S3 then return it
-        return await S3Client.DownloadObjectAsync<SimpleStorageServiceQueueMessage<TPayload>>(objectName,
+        return await AwsSimpleStorageServiceClient.DownloadObjectAsync<SimpleStorageServiceQueueMessage<TPayload>>(
+            objectName,
             configuration: SimpleStorageServiceConfiguration.ToClientConfiguration());
     }
 
@@ -119,15 +119,16 @@ public abstract class QueuePublisherSubscriber<TPayload>
         if (!IsQueueBackedBySimpleStorageService()) return;
 
         // Check for encryption capabilities then encrypt the S3 JSON and upload it
-        if (EncryptionConfiguration is not null && SimpleStorageServiceConfiguration.EncryptJson)
-            await S3Client.UploadAsync($"{message.Payload}.json",
-                await CryptographyService.EncryptAsync(message, key: EncryptionConfiguration.Secret,
-                    passes: EncryptionConfiguration.Passes),
+        if (EncryptionConfiguration is not null && SimpleStorageServiceConfiguration.EncryptObjects)
+            await AwsSimpleStorageServiceClient.UploadAsync($"{message.Payload}.json",
+                await message.ToSimpleStorageServiceEncryptedQueueMessageAsync(EncryptionConfiguration),
+                format: SerializerFormat.Json,
                 configuration: SimpleStorageServiceConfiguration.ToClientConfiguration());
 
         // Otherwise, upload the message JSON
         else
-            await S3Client.UploadAsync($"{message.Payload}.json", message,
+            await AwsSimpleStorageServiceClient.UploadAsync($"{message.Payload}.json", message,
+                format: SerializerFormat.Json,
                 configuration: SimpleStorageServiceConfiguration.ToClientConfiguration());
     }
 }

@@ -29,23 +29,19 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
     }
 
     /// <summary>
-    /// This method asynchronously publishes a message to the queue
+    ///     This method asynchronously publishes a message to the queue
     /// </summary>
     /// <param name="payload">The message payload</param>
-    /// <returns>The message that was published</returns>
+    /// <returns>An awaitable task containing the message that was published</returns>
     public async Task<QueueMessage<TPayload>> PublishAsync(TPayload payload)
     {
         // Instantiate our message
         QueueMessage<TPayload> message = new(payload);
 
-        // Serialize the message
-        string json = EncryptionConfiguration is null
-            ? JsonSerializer.Serialize(message)
-            : await CryptographyService.EncryptAsync(message, key: EncryptionConfiguration.Secret,
-                passes: EncryptionConfiguration.Passes);
-
         // Define our message body
-        byte[] body = Encoding.UTF8.GetBytes(json);
+        byte[] body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(EncryptionConfiguration is null
+            ? message
+            : await message.ToEncryptedQueueMessageAsync(EncryptionConfiguration)));
 
         // Localize our properties
         IBasicProperties properties = Channel.CreateBasicProperties();
