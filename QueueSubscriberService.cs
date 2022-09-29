@@ -51,14 +51,18 @@ public class QueueSubscriberService<TPayload> : BackgroundService
     /// <param name="defaultEndpoint">Optional, RabbitMQ endpoint definition</param>
     /// <param name="defaultSimpleStorageServiceConfiguration">Optional, S3 configuration to use</param>
     /// <param name="defaultEncryptionConfiguration">Optional, queue encryption configuration</param>
-    public QueueSubscriberService(IServiceProvider serviceProvider, IQueueService.DelegateSubscriberAsync<TPayload> subscriber, QueueConfiguration defaultEndpoint = null, QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null, QueueServiceEncryptionConfiguration defaultEncryptionConfiguration = null)
+    public QueueSubscriberService(IServiceProvider serviceProvider,
+        IQueueService.DelegateSubscriberAsync<TPayload> subscriber, QueueConfiguration defaultEndpoint = null,
+        QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null,
+        QueueServiceEncryptionConfiguration defaultEncryptionConfiguration = null)
     {
         // Set the log service provider into the instance
         _logger = serviceProvider.GetService<ILogger<QueueSubscriberService<TPayload>>>();
 
         // Set the queue service provider into the instance
-        _service = new QueueService<TPayload>(serviceProvider.GetService<ILogger<QueueService<TPayload>>>(),
-            defaultEndpoint, defaultSimpleStorageServiceConfiguration, defaultEncryptionConfiguration);
+        _service = new QueueService<TPayload>(serviceProvider.GetService<ILogger<QueueService<TPayload>>>())
+            .UseEncryption(defaultEncryptionConfiguration).UseEndpoint(defaultEndpoint)
+            .UseSimpleStorageService(defaultSimpleStorageServiceConfiguration);
 
         // Set the subscriber into the instance
         _subscriber = subscriber;
@@ -81,8 +85,9 @@ public class QueueSubscriberService<TPayload> : BackgroundService
         _logger = serviceProvider.GetService<ILogger<QueueSubscriberService<TPayload>>>();
 
         // Set the queue service provider into the instance
-        _service = new QueueService<TPayload>(serviceProvider.GetService<ILogger<QueueService<TPayload>>>(),
-            defaultEndpoint, defaultSimpleStorageServiceConfiguration, defaultEncryptionConfiguration);
+        _service = new QueueService<TPayload>(serviceProvider.GetService<ILogger<QueueService<TPayload>>>())
+            .UseEncryption(defaultEncryptionConfiguration).UseEndpoint(defaultEndpoint)
+            .UseSimpleStorageService(defaultSimpleStorageServiceConfiguration);
 
         // Set the subscriber into the instance
         _subscriber = subscriber;

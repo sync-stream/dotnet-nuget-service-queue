@@ -153,12 +153,12 @@ public static class QueueServiceCollectionExtensions
         UseGlobalSyncStreamQueueSimpleStorageService(instance, section.Get<QueueSimpleStorageServiceConfiguration>());
 
     /// <summary>
-    /// This method registers a scoped publisher service with the <paramref name="instance" />
+    /// This method registers a scoped queue service with the <paramref name="instance" />
     /// </summary>
     /// <param name="instance">The current IServiceCollection instance</param>
     /// <typeparam name="TPayload">The expected payload type to publish</typeparam>
     /// <returns>The current IServiceCollection instance</returns>
-    public static IServiceCollection UseScopedSyncStreamQueuePublisher<TPayload>(this IServiceCollection instance)
+    public static IServiceCollection UseScopedSyncStreamQueueService<TPayload>(this IServiceCollection instance)
     {
         // Register the scoped service
         instance.AddScoped<IQueueService<TPayload>, QueueService<TPayload>>();
@@ -168,12 +168,12 @@ public static class QueueServiceCollectionExtensions
     }
 
     /// <summary>
-    /// This method registers a singleton publisher service with the <paramref name="instance" />
+    /// This method registers a singleton queue service with the <paramref name="instance" />
     /// </summary>
     /// <param name="instance">The current IServiceCollection instance</param>
     /// <typeparam name="TPayload">The expected payload type to publish</typeparam>
     /// <returns>The current IServiceCollection instance</returns>
-    public static IServiceCollection UseSingletonSyncStreamQueuePublisher<TPayload>(this IServiceCollection instance)
+    public static IServiceCollection UseSingletonSyncStreamQueueService<TPayload>(this IServiceCollection instance)
     {
         // Register the scoped service
         instance.AddSingleton<IQueueService<TPayload>, QueueService<TPayload>>();
@@ -336,12 +336,12 @@ public static class QueueServiceCollectionExtensions
     }
 
     /// <summary>
-    /// This method registers a transient publisher service with the <paramref name="instance" />
+    /// This method registers a transient queue service with the <paramref name="instance" />
     /// </summary>
     /// <param name="instance">The current IServiceCollection instance</param>
     /// <typeparam name="TPayload">The expected payload type to publish</typeparam>
     /// <returns>The current IServiceCollection instance</returns>
-    public static IServiceCollection UseTransientSyncStreamQueuePublisher<TPayload>(this IServiceCollection instance)
+    public static IServiceCollection UseTransientSyncStreamQueueService<TPayload>(this IServiceCollection instance)
     {
         // Register the scoped service
         instance.AddTransient<IQueueService<TPayload>, QueueService<TPayload>>();

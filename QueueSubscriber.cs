@@ -8,35 +8,31 @@ using RabbitMQ.Client.Events;
 namespace SyncStream.Service.Queue;
 
 /// <summary>
-/// This class maintains the structure of our queue subscriber
+///     This class maintains the structure of our queue subscriber
 /// </summary>
 /// <typeparam name="TPayload">The expected message type</typeparam>
 public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayload>
 {
     /// <summary>
-    /// This property contains the instance of our consumer
+    ///     This property contains the instance of our consumer
     /// </summary>
     private readonly AsyncEventingBasicConsumer _consumer;
 
     /// <summary>
-    /// This method instantiates our subscriber with a <paramref name="logServiceProvider" />
+    ///     This method instantiates our subscriber with a <paramref name="logServiceProvider" />
     /// </summary>
     /// <param name="logServiceProvider">The log service provider for the instance</param>
-    /// <param name="channel">The queue channel the subscriber is consuming</param>
-    /// <param name="endpoint">The queue endpoint to subscribe to</param>
-    /// <param name="simpleStorageServiceConfiguration">Optional, AWS S3 configuration details for S3-backed queue messages</param>
-    /// <param name="encryptionConfiguration">The encryption configuration for the queue</param>
-    public QueueSubscriber(ILogger<QueueSubscriber<TPayload>> logServiceProvider, IModel channel, string endpoint,
-        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration = null,
-        QueueServiceEncryptionConfiguration encryptionConfiguration = null) : base(logServiceProvider, channel,
-        endpoint, simpleStorageServiceConfiguration, encryptionConfiguration)
-    {
-        // Set the consumer into the instance
-        _consumer = new(Channel);
-    }
+    /// <param name="endpointConfiguration">The queue endpoint to subscribe to</param>
+    /// <param name="simpleStorageServiceConfigurationOverride">Optional, AWS S3 configuration override details for S3-backed queue messages</param>
+    /// <param name="encryptionConfigurationOverride">The encryption configuration override for the queue</param>
+    public QueueSubscriber(ILogger<IQueueService> logServiceProvider, QueueConfiguration endpointConfiguration,
+        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfigurationOverride = null,
+        QueueServiceEncryptionConfiguration encryptionConfigurationOverride = null) : base(logServiceProvider,
+        endpointConfiguration, simpleStorageServiceConfigurationOverride, encryptionConfigurationOverride) =>
+        _consumer = new(EndpointConfiguration.GetChannel());
 
     /// <summary>
-    /// This method asynchronously acknowledges an S3 alias message
+    ///     This method asynchronously acknowledges an S3 alias message
     /// </summary>
     /// <param name="objectName">The object path to the message on S3</param>
     public async Task AcknowledgeSimpleStorageServiceMessageAsync(string objectName)
@@ -55,7 +51,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
     }
 
     /// <summary>
-    /// This method asynchronously handles a message
+    ///     This method asynchronously handles a message
     /// </summary>
     /// <param name="deliveryTag">The delivery tag of the message</param>
     /// <param name="delegateSubscriber">The asynchronous delegate subscriber</param>
@@ -93,7 +89,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
                 typeof(TPayload), EndpointConfiguration);
 
             // We're done, acknowledge the message
-            Channel?.BasicAck(deliveryTag, false);
+            EndpointConfiguration.GetChannel().BasicAck(deliveryTag, false);
 
             // Check for S3 aliasing and acknowledge the alias message
             if (IsQueueBackedBySimpleStorageService() && objectName is not null)
@@ -115,7 +111,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
                 await RejectSimpleStorageServiceMessageAsync(objectName, subscriberException);
 
             // We're done, reject the message
-            Channel?.BasicReject(deliveryTag, false);
+            EndpointConfiguration.GetChannel().BasicReject(deliveryTag, false);
 
             // Send the log message
             Logger?.LogError(subscriberException,
@@ -128,7 +124,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
     }
 
     /// <summary>
-    /// This method asynchronously handles an incoming message to the subscriber
+    ///     This method asynchronously handles an incoming message to the subscriber
     /// </summary>
     /// <param name="arguments">The raw message from the queue</param>
     /// <param name="delegateSubscriber">The subscriber to pipe the pre-processed message to</param>
@@ -147,7 +143,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
             QueueMessage<string> aliasMessage = null;
 
             // Define our message
-            QueueMessage<TPayload> message = null;
+            QueueMessage<TPayload> message;
 
             // Check for S3 then download and process the message
             if (IsQueueBackedBySimpleStorageService())
@@ -179,7 +175,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         catch (Exception exception)
         {
             // We're done, reject the message
-            Channel?.BasicReject(arguments.DeliveryTag, false);
+            EndpointConfiguration.GetChannel().BasicReject(arguments.DeliveryTag, false);
 
             // Send the log message
             Logger?.LogError(exception, "Message Rejected");
@@ -187,7 +183,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
     }
 
     /// <summary>
-    /// This method parses an incoming message from the queue
+    ///     This method parses an incoming message from the queue
     /// </summary>
     /// <param name="arguments">The incoming message event</param>
     /// <returns>The parsed message from <paramref name="arguments" /></returns>
@@ -195,7 +191,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         JsonSerializer.Deserialize<QueueMessage<TPayload>>(Encoding.UTF8.GetString(arguments.Body.ToArray()));
 
     /// <summary>
-    /// This method parses an incoming message from the queue
+    ///     This method parses an incoming message from the queue
     /// </summary>
     /// <param name="arguments">The incoming message event</param>
     /// <returns>The parsed message from <paramref name="arguments" /></returns>
@@ -204,7 +200,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         JsonSerializer.Deserialize<QueueMessage<TPayloadOverride>>(Encoding.UTF8.GetString(arguments.Body.ToArray()));
 
     /// <summary>
-    /// This method asynchronously rejects an S3 alias message
+    ///     This method asynchronously rejects an S3 alias message
     /// </summary>
     /// <param name="objectName">The object path to the message on S3</param>
     /// <param name="reason">The reason the message was rejected</param>
@@ -227,7 +223,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
     }
 
     /// <summary>
-    /// This method provides an asynchronous consumer for queue messages
+    ///     This method provides an asynchronous consumer for queue messages
     /// </summary>
     /// <param name="delegateSubscriber">The asynchronous subscriber delegate to run after pre-processing the queue message</param>
     /// <param name="stoppingToken">The token representing the cancellation of the task</param>
@@ -249,7 +245,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         Logger?.LogDebug("Consuming {Endpoint}", EndpointConfiguration);
 
         // Consume messages from the queue
-        Channel?.BasicConsume(_consumer, EndpointConfiguration);
+        EndpointConfiguration.GetChannel().BasicConsume(_consumer, EndpointConfiguration.Endpoint);
 
         // We're done, return the completed task
         return Task.CompletedTask;

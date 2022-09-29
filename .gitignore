@@ -795,4 +795,4 @@ e2e/*.map
 
 https:
 Program.cs
-ExampleQueueMessage.cs
+SyncStream.Service.Queue.xml

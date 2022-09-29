@@ -80,7 +80,7 @@ public class Startup
             .UseGlobalSyncStreamQueueSimpleStorageService(Configuration, "Queue:SimpleStorageService")
 
             // We'll need a publisher for the queue, so register a scoped service
-            .UseSingletonSyncStreamQueuePublisher<ExampleQueueMessage>()
+            .UseSingletonSyncStreamQueueService<ExampleQueueMessage>()
 
             // We'll also need a subscriber for the queue, let's register it
             // This can also point directly to a static method or an instance method

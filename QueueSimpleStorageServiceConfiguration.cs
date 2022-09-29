@@ -19,11 +19,11 @@ public class QueueSimpleStorageServiceConfiguration
     public string AccessKeyId { get; set; }
 
     /// <summary>
-    /// This property contains the S3 bucket to store the messages in
+    /// This property contains the S3 bucket, and optional prefix, to store the messages in
     /// </summary>
     [JsonPropertyName("Bucket")]
     [XmlAttribute("bucket")]
-    public string Bucket { get; set; }
+    public string BucketPrefix { get; set; }
 
     /// <summary>
     /// This method denotes whether the JSON stored in S3 should be encrypted or not

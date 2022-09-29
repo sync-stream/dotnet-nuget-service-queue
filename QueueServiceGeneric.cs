@@ -17,28 +17,6 @@ public class QueueService<TPayload> : QueueService, IQueueService<TPayload>
     }
 
     /// <summary>
-    /// This method instantiates our service with a RabbitMQ Connection
-    /// </summary>
-    /// <param name="logServiceProvider">The log service provider</param>
-    /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
-    /// <param name="defaultSimpleStorageServiceConfiguration">Optional, S3 configuration for the queue</param>
-    /// <param name="defaultEncryptionConfiguration">Optional, queue encryption configuration</param>
-    public QueueService(ILogger<QueueService<TPayload>> logServiceProvider, QueueConfiguration defaultEndpoint = null, QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null, QueueServiceEncryptionConfiguration defaultEncryptionConfiguration = null) : base(logServiceProvider, defaultEndpoint, defaultSimpleStorageServiceConfiguration, defaultEncryptionConfiguration)
-    {
-    }
-
-    /// <summary>
-    /// This method instantiates our service with a RabbitMQ Connection
-    /// </summary>
-    /// <param name="logServiceProvider">The log service provider</param>
-    /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
-    /// <param name="defaultSimpleStorageServiceConfiguration">The default S3 configuration for the queue</param>
-    /// <param name="defaultEncryptionConfiguration">Optional, queue encryption configuration</param>
-    public QueueService(ILogger<QueueService<TPayload>> logServiceProvider, string defaultEndpoint = null, QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null, QueueServiceEncryptionConfiguration defaultEncryptionConfiguration = null) : base(logServiceProvider, defaultEndpoint, defaultSimpleStorageServiceConfiguration, defaultEncryptionConfiguration)
-    {
-    }
-
-    /// <summary>
     /// This method asynchronously publishes a message a queue
     /// </summary>
     /// <param name="payload">The message payload to publish</param>
@@ -73,4 +51,37 @@ public class QueueService<TPayload> : QueueService, IQueueService<TPayload>
     /// <returns>An awaitable task containing the message</returns>
     public Task SubscribeAsync(string queueName, IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber,
         CancellationToken stoppingToken = default) => base.SubscribeAsync(queueName, delegateSubscriber, stoppingToken);
+
+    /// <summary>
+    ///     This method fluidly resets the queue's encryption configuration into the instance
+    /// </summary>
+    /// <param name="encryptionConfiguration">The encryption configuration to use</param>
+    /// <returns>The current instance</returns>
+    public new IQueueService<TPayload> UseEncryption(QueueServiceEncryptionConfiguration encryptionConfiguration) =>
+        base.UseEncryption(encryptionConfiguration) as IQueueService<TPayload>;
+
+    /// <summary>
+    ///     This method fluidly resets the queue endpoint into the instance
+    /// </summary>
+    /// <param name="queueEndpointConfiguration">The queue endpoint configuration to use</param>
+    /// <returns>The current instance</returns>
+    public new IQueueService<TPayload> UseEndpoint(QueueConfiguration queueEndpointConfiguration) =>
+        base.UseEndpoint(queueEndpointConfiguration) as IQueueService<TPayload>;
+
+    /// <summary>
+    ///     This method fluidly resets the queue's S3 configuration into the instance
+    /// </summary>
+    /// <param name="simpleStorageServiceConfiguration">The S3 configuration to use</param>
+    /// <returns>The current instance</returns>
+    public new IQueueService<TPayload> UseSimpleStorageService(
+        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration) =>
+        base.UseSimpleStorageService(simpleStorageServiceConfiguration) as IQueueService<TPayload>;
+
+    /// <summary>
+    ///     This method fluidly resets the queue endpoint into the instance
+    /// </summary>
+    /// <param name="queueEndpoint">The name of the queue endpoint configuration to use</param>
+    /// <returns>The current instance</returns>
+    public new IQueueService<TPayload> UseEndpoint(string queueEndpoint) =>
+        base.UseEndpoint(queueEndpoint) as IQueueService<TPayload>;
 }

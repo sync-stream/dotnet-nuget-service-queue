@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using SyncStream.Serializer;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -197,63 +198,6 @@ public class QueueService : IQueueService
     }
 
     /// <summary>
-    /// This method instantiates our service with a RabbitMQ Connection
-    /// </summary>
-    /// <param name="logServiceProvider">The log service provider</param>
-    /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
-    /// <param name="defaultSimpleStorageServiceConfiguration">The default S3 configuration for the queue</param>
-    /// <param name="defaultEncryptionConfiguration">The default encryption configuration for the queue</param>
-    public QueueService(ILogger<QueueService> logServiceProvider, QueueConfiguration defaultEndpoint = null,
-        QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null,
-        QueueServiceEncryptionConfiguration defaultEncryptionConfiguration = null) : this(logServiceProvider)
-    {
-        // Default the queue endpoint
-        _queue = DefaultEndpointConfiguration;
-
-        // Check for a default queue
-        if (defaultEndpoint is not null)
-        {
-            // Register the endpoint
-            RegisterEndpointConfiguration(defaultEndpoint);
-
-            // Set the queue into the instance
-            _queue = defaultEndpoint;
-        }
-
-        // Set the encryption configuration into the instance
-        _encryption = defaultEncryptionConfiguration ?? _queue?.Encryption ?? DefaultEncryptionConfiguration;
-
-        // Set the S3 configuration into the instance
-        _simpleStorageServiceConfiguration = defaultSimpleStorageServiceConfiguration ??
-                                             _queue?.SimpleStorageService ?? DefaultSimpleStorageServiceConfiguration;
-    }
-
-    /// <summary>
-    /// This method instantiates our service with a RabbitMQ Connection
-    /// </summary>
-    /// <param name="logServiceProvider">The log service provider</param>
-    /// <param name="defaultEndpoint">Optional default queue endpoint to use</param>
-    /// <param name="defaultSimpleStorageServiceConfiguration">The default S3 configuration for the queue</param>
-    /// <param name="defaultEncryptionConfiguration">The default encryption configuration for the queue</param>
-    public QueueService(ILogger<QueueService> logServiceProvider, string defaultEndpoint = null,
-        QueueSimpleStorageServiceConfiguration defaultSimpleStorageServiceConfiguration = null,
-        QueueServiceEncryptionConfiguration defaultEncryptionConfiguration = null)
-    {
-        // Set the logger into the instance
-        _logger = logServiceProvider;
-
-        // Default the queue endpoint
-        _queue = defaultEndpoint is null ? DefaultEndpointConfiguration : GetEndpointConfiguration(defaultEndpoint);
-
-        // Set the encryption configuration into the instance
-        _encryption = defaultEncryptionConfiguration ?? _queue?.Encryption ?? DefaultEncryptionConfiguration;
-
-        // Set the S3 configuration into the instance
-        _simpleStorageServiceConfiguration = defaultSimpleStorageServiceConfiguration ??
-                                             _queue?.SimpleStorageService ?? DefaultSimpleStorageServiceConfiguration;
-    }
-
-    /// <summary>
     /// This method disconnects from the queue
     /// </summary>
     /// <param name="all">Denotes whether to disconnect all queues or not</param>
@@ -284,8 +228,7 @@ public class QueueService : IQueueService
     /// <typeparam name="TPayload">The expected type of the message payload</typeparam>
     /// <returns>An awaitable task containing the published message</returns>
     public Task<QueueMessage<TPayload>> PublishAsync<TPayload>(TPayload payload) =>
-        new QueuePublisher<TPayload>(_logger as ILogger<QueuePublisher<TPayload>>, _queue.GetChannel(),
-            _queue?.Endpoint ?? DefaultEndpointConfiguration?.Endpoint,
+        new QueuePublisher<TPayload>(_logger, _queue ?? DefaultEndpointConfiguration,
             _queue?.SimpleStorageService ??
             _simpleStorageServiceConfiguration ?? DefaultSimpleStorageServiceConfiguration,
             _queue?.Encryption ?? _encryption ?? DefaultEncryptionConfiguration).PublishAsync(payload);
@@ -393,13 +336,10 @@ public class QueueService : IQueueService
     /// <typeparam name="TPayload">The expected message type</typeparam>
     /// <returns>An awaitable task containing the message</returns>
     public Task SubscribeAsync<TPayload>(IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber,
-        CancellationToken stoppingToken = default) => new QueueSubscriber<TPayload>(
-            _logger as ILogger<QueueSubscriber<TPayload>>, _queue?.GetChannel(),
-            _queue?.Endpoint ?? DefaultEndpointConfiguration?.Endpoint,
-            _queue?.SimpleStorageService ??
-            _simpleStorageServiceConfiguration ?? DefaultSimpleStorageServiceConfiguration,
-            _queue?.Encryption ?? _encryption ?? DefaultEncryptionConfiguration)
-        .SubscribeAsync(delegateSubscriber, stoppingToken);
+        CancellationToken stoppingToken = default) => new QueueSubscriber<TPayload>(_logger,
+        _queue ?? DefaultEndpointConfiguration,
+        _simpleStorageServiceConfiguration ?? DefaultSimpleStorageServiceConfiguration,
+        _encryption ?? DefaultEncryptionConfiguration).SubscribeAsync(delegateSubscriber, stoppingToken);
 
     /// <summary>
     /// This method asynchronously subscribes to <paramref name="queueName" />
@@ -413,4 +353,70 @@ public class QueueService : IQueueService
         IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber,
         CancellationToken stoppingToken = default) =>
         SetQueueEndpoint(GetEndpointConfiguration(queueName)).SubscribeAsync(delegateSubscriber, stoppingToken);
+
+    /// <summary>
+    ///     This method fluidly resets the queue's encryption configuration into the instance
+    /// </summary>
+    /// <param name="encryptionConfiguration">The encryption configuration to use</param>
+    /// <returns>The current instance</returns>
+    public IQueueService UseEncryption(QueueServiceEncryptionConfiguration encryptionConfiguration)
+    {
+        // Reset the queue's encryption configuration into the instance
+        _encryption = encryptionConfiguration;
+
+        // Reset the queue's encryption configuration into the current queue endpoint configuration
+        if (_queue is not null) _queue.Encryption ??= encryptionConfiguration;
+
+        // We're done, return the instance
+        return this;
+    }
+
+    /// <summary>
+    ///     This method fluidly resets the queue endpoint into the instance
+    /// </summary>
+    /// <param name="queueEndpointConfiguration">The queue endpoint configuration to use</param>
+    /// <returns>The current instance</returns>
+    public IQueueService UseEndpoint(QueueConfiguration queueEndpointConfiguration)
+    {
+        // Reset the queue endpoint configuration into the instance
+        _queue = queueEndpointConfiguration;
+
+        // Log the queue
+        Console.WriteLine($"\n\n\nQueue:\t{JsonSerializer.SerializePretty(_queue)}\n\n\n");
+
+        // Check for an encryption configuration and use it
+        if (_queue.Encryption is not null) _encryption = _queue.Encryption;
+
+        // Check for an S3 configuration and use it
+        if (_queue.SimpleStorageService is not null) _simpleStorageServiceConfiguration = _queue.SimpleStorageService;
+
+        // We're done, return the instance
+        return RegisterEndpoint(queueEndpointConfiguration);
+    }
+
+    /// <summary>
+    ///     This method fluidly resets the queue endpoint into the instance
+    /// </summary>
+    /// <param name="queueEndpoint">The name of the queue endpoint configuration to use</param>
+    /// <returns>The current instance</returns>
+    public IQueueService UseEndpoint(string queueEndpoint) => UseEndpoint(Queues.FirstOrDefault(q =>
+        q.Endpoint.ToLower().Equals(queueEndpoint.ToLower()) || q.Name.ToLower().Equals(queueEndpoint.ToLower())));
+
+    /// <summary>
+    ///     This method fluidly resets the queue's S3 configuration into the instance
+    /// </summary>
+    /// <param name="simpleStorageServiceConfiguration">The S3 configuration to use</param>
+    /// <returns>The current instance</returns>
+    public IQueueService UseSimpleStorageService(
+        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration)
+    {
+        // Reset the queue's S3 configuration into the instance
+        _simpleStorageServiceConfiguration = simpleStorageServiceConfiguration;
+
+        // Reset the queue's S3 configuration into the current queue endpoint configuration
+        if (_queue is not null) _queue.SimpleStorageService ??= simpleStorageServiceConfiguration;
+
+        // We're done, return the instance
+        return this;
+    }
 }

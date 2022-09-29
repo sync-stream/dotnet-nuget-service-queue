@@ -108,4 +108,33 @@ public interface IQueueService
     /// <returns>An awaitable task containing the message</returns>
     public Task SubscribeAsync<TPayload>(string queueName,
         DelegateSubscriberAsync<TPayload> delegateSubscriber, CancellationToken stoppingToken = default);
+
+    /// <summary>
+    ///     This method fluidly resets the queue's encryption configuration into the instance
+    /// </summary>
+    /// <param name="encryptionConfiguration">The encryption configuration to use</param>
+    /// <returns>The current instance</returns>
+    public IQueueService UseEncryption(QueueServiceEncryptionConfiguration encryptionConfiguration);
+
+    /// <summary>
+    ///     This method fluidly resets the queue endpoint into the instance
+    /// </summary>
+    /// <param name="queueEndpointConfiguration">The queue endpoint configuration to use</param>
+    /// <returns>The current instance</returns>
+    public IQueueService UseEndpoint(QueueConfiguration queueEndpointConfiguration);
+
+    /// <summary>
+    ///     This method fluidly resets the queue endpoint into the instance
+    /// </summary>
+    /// <param name="queueEndpoint">The name of the queue endpoint configuration to use</param>
+    /// <returns>The current instance</returns>
+    public IQueueService UseEndpoint(string queueEndpoint);
+
+    /// <summary>
+    ///     This method fluidly resets the queue's S3 configuration into the instance
+    /// </summary>
+    /// <param name="simpleStorageServiceConfiguration">The S3 configuration to use</param>
+    /// <returns>The current instance</returns>
+    public IQueueService UseSimpleStorageService(
+        QueueSimpleStorageServiceConfiguration simpleStorageServiceConfiguration);
 }

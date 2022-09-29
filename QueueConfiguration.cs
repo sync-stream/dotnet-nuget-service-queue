@@ -8,98 +8,98 @@ using RabbitMQ.Client;
 namespace SyncStream.Service.Queue;
 
 /// <summary>
-/// This class maintains the structure of a registered queue in the configuration
+///     This class maintains the structure of a registered queue in the configuration
 /// </summary>
 [XmlInclude(typeof(QueueSimpleStorageServiceConfiguration))]
 [XmlRoot("QueueConfiguration")]
 public class QueueConfiguration
 {
     /// <summary>
-    /// This property contains the encryption configuration for the queue endpoint
+    ///     This property contains the encryption configuration for the queue endpoint
     /// </summary>
     [JsonPropertyName("Encryption")]
     [XmlElement("Encryption")]
     public QueueServiceEncryptionConfiguration Encryption { get; set; }
 
-        /// <summary>
-    /// This property contains the RabbitMQ name for the queue
+    /// <summary>
+    ///     This property contains the RabbitMQ name for the queue
     /// </summary>
     [JsonPropertyName("Endpoint")]
     [XmlAttribute("endpoint")]
     public string Endpoint { get; set; }
 
     /// <summary>
-    /// This property contains the address at which the RabbitMQ service listens
+    ///     This property contains the address at which the RabbitMQ service listens
     /// </summary>
     [JsonPropertyName("Hostname")]
     [XmlAttribute("hostname")]
     public string Hostname { get; set; }
 
     /// <summary>
-    /// This property contains the friendly name of the queue
+    ///     This property contains the friendly name of the queue
     /// </summary>
     [JsonPropertyName("Name")]
     [XmlAttribute("name")]
     public string Name { get; set; }
 
     /// <summary>
-    /// This property contains the password with which to authenticate with the RabbitMQ service
+    ///     This property contains the password with which to authenticate with the RabbitMQ service
     /// </summary>
     [JsonPropertyName("Password")]
     [XmlAttribute("password")]
     public string Password { get; set; }
 
     /// <summary>
-    /// This property contains the port number on which the RabbitMQ service listens
+    ///     This property contains the port number on which the RabbitMQ service listens
     /// </summary>
     [JsonPropertyName("Port")]
     [XmlAttribute("port")]
     public int Port { get; set; } = 5672;
 
     /// <summary>
-    /// This property denotes whether the connection to the RabbitMQ service is secure or not
+    ///     This property denotes whether the connection to the RabbitMQ service is secure or not
     /// </summary>
     [JsonPropertyName("Secure")]
     [XmlAttribute("secure")]
     public bool Secure { get; set; }
 
     /// <summary>
-    /// This property contains the AWS S3 configuration for the queue
+    ///     This property contains the AWS S3 configuration for the queue
     /// </summary>
     [JsonPropertyName("SimpleStorageService")]
     [XmlElement("SimpleStorageService")]
     public QueueSimpleStorageServiceConfiguration SimpleStorageService { get; set; }
 
     /// <summary>
-    /// This property contains the username with which to authenticate with the RabbitMQ service
+    ///     This property contains the username with which to authenticate with the RabbitMQ service
     /// </summary>
     [JsonPropertyName("Username")]
     [XmlAttribute("username")]
     public string Username { get; set; }
 
     /// <summary>
-    /// This property contains the virtual host on which the queue lives inside the RabbitMQ service
+    ///     This property contains the virtual host on which the queue lives inside the RabbitMQ service
     /// </summary>
     [JsonPropertyName("VirtualHost")]
     [XmlAttribute("vhost")]
     public string VirtualHost { get; set; } = "/";
 
     /// <summary>
-    ///  This property contains the connected channel to the queue
+    ///     This property contains the connected channel to the queue
     /// </summary>
     [JsonIgnore]
     [XmlIgnore]
     public IModel Channel { get; private set; }
 
     /// <summary>
-    /// This property contains the connection to the queue
+    ///     This property contains the connection to the queue
     /// </summary>
     [JsonIgnore]
     [XmlIgnore]
     public IConnection Connection { get; private set; }
 
     /// <summary>
-    /// This method disconnects from the queue endpoint
+    ///     This method disconnects from the queue endpoint
     /// </summary>
     /// <returns>This instance</returns>
     public QueueConfiguration Disconnect()
@@ -115,7 +115,7 @@ public class QueueConfiguration
     }
 
     /// <summary>
-    /// This method returns the connected RabbitMQ channel from the instance
+    ///     This method returns the connected RabbitMQ channel from the instance
     /// </summary>
     /// <returns>The connected RabbitMQ channel</returns>
     public IModel GetChannel()
@@ -137,7 +137,7 @@ public class QueueConfiguration
     }
 
     /// <summary>
-    /// This method returns the RabbitMQ connection from the instance
+    ///     This method returns the RabbitMQ connection from the instance
     /// </summary>
     /// <returns>The RabbitMQ connection</returns>
     public IConnection GetConnection()
@@ -153,14 +153,14 @@ public class QueueConfiguration
     }
 
     /// <summary>
-    /// This method generates a new connected RabbitMQ channel from the instance connection
+    ///     This method generates a new connected RabbitMQ channel from the instance connection
     /// </summary>
     /// <returns>The connected RabbitMQ channel</returns>
     public IModel NewChannel() =>
         GetConnection()?.CreateModel();
 
     /// <summary>
-    /// This method generates a new connection from the instance
+    ///     This method generates a new connection from the instance
     /// </summary>
     /// <returns>The new RabbitMQ IConnection</returns>
     public IConnection NewConnection() =>
