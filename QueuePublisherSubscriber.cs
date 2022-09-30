@@ -1,4 +1,6 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text;
+using System.Text.RegularExpressions;
+using Amazon.S3;
 using Microsoft.Extensions.Logging;
 using SyncStream.Aws.S3.Client;
 using SyncStream.Serializer;
@@ -140,6 +142,9 @@ public abstract class QueuePublisherSubscriber<TPayload>
         // Check for S3 capabilities
         if (EndpointConfiguration.SimpleStorageService is null) return null;
 
+        // Finalize our object name
+        objectName = $"{objectName}.json";
+
         // Try to download the S3 message
         try
         {
@@ -148,28 +153,28 @@ public abstract class QueuePublisherSubscriber<TPayload>
                 EndpointConfiguration.SimpleStorageService.EncryptObjects)
             {
                 // Send the log message
-                GetLogger()?.LogInformation(GetLogMessage("Downloading Encrypted S3 Message", null, null));
+                GetLogger()?.LogInformation(
+                    GetLogMessage($"Downloading Encrypted S3 Message: {objectName}", null, null));
 
                 // Download the message
                 SimpleStorageServiceEncryptedQueueMessage<TPayload> encryptedMessage =
                     await AwsSimpleStorageServiceClient
-                        .DownloadObjectAsync<SimpleStorageServiceEncryptedQueueMessage<TPayload>>($"{objectName}.json",
+                        .DownloadObjectAsync<SimpleStorageServiceEncryptedQueueMessage<TPayload>>(objectName,
                             SerializerFormat.Json, EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
 
                 // Send the log message
-                GetLogger()?.LogInformation(GetLogMessage("Decrypting S3 Message", null, null));
+                GetLogger()?.LogInformation(GetLogMessage($"Decrypting S3 Message: {objectName}", null, null));
 
                 // We're done, return the decrypted message
                 return await encryptedMessage.ToSimpleStorageServiceQueueMessageAsync(EndpointConfiguration.Encryption);
             }
 
             // Send the log message
-            GetLogger()?.LogInformation(GetLogMessage("Downloading S3 Message", null, null));
+            GetLogger()?.LogInformation(GetLogMessage($"Downloading S3 Message: {objectName}", null, null));
 
             // We're done, download the object from S3 then return it
             return await AwsSimpleStorageServiceClient.DownloadObjectAsync<SimpleStorageServiceQueueMessage<TPayload>>(
-                $"{objectName}.json",
-                configuration: EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+                objectName, SerializerFormat.Json, EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
         }
 
         catch (Exception exception)
@@ -206,6 +211,9 @@ public abstract class QueuePublisherSubscriber<TPayload>
         // Check for S3 capabilities
         if (EndpointConfiguration.SimpleStorageService is null) return;
 
+        // Define our object name
+        string objectName = $"{GenerateObjectName(message.Id)}.json";
+
         // Try to write the message
         try
         {
@@ -214,31 +222,33 @@ public abstract class QueuePublisherSubscriber<TPayload>
                 EndpointConfiguration.SimpleStorageService.EncryptObjects)
             {
                 // Send the log message
-                GetLogger()?.LogInformation(GetLogMessage("Encrypting S3 Message", null, null));
+                GetLogger()?.LogInformation(GetLogMessage($"Encrypting S3 Message: {objectName}", null, null));
 
                 // Encrypt the S3 message
                 SimpleStorageServiceEncryptedQueueMessage<TPayload> encryptedMessage =
                     await message.ToSimpleStorageServiceEncryptedQueueMessageAsync(EndpointConfiguration.Encryption);
 
+                // Send the lob message
+                GetLogger()?.LogInformation(
+                    GetLogMessage($"Serializing Encrypted S3 Message: {objectName}", null, null));
+
                 // Send the log message
-                GetLogger()?.LogInformation(GetLogMessage("Uploading Encrypted S3 Message", null, null));
+                GetLogger()?.LogInformation(GetLogMessage($"Uploading Encrypted S3 Message: {objectName}", null, null));
 
                 // Upload the encrypted S3 message
-                await AwsSimpleStorageServiceClient.UploadAsync($"{message.Payload}.json", encryptedMessage,
-                    format: SerializerFormat.Json,
-                    configuration: EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+                await AwsSimpleStorageServiceClient.UploadAsync(objectName, encryptedMessage, SerializerFormat.Json,
+                    EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
             }
 
             // Otherwise, upload the message JSON
             else
             {
                 // Send the log message
-                GetLogger()?.LogInformation(GetLogMessage("Uploading S3 Message", null, null));
+                GetLogger()?.LogInformation(GetLogMessage($"Uploading S3 Message: {objectName}", null, null));
 
                 // Upload the S3 message
-                await AwsSimpleStorageServiceClient.UploadAsync($"{message.Payload}.json", message,
-                    format: SerializerFormat.Json,
-                    configuration: EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+                await AwsSimpleStorageServiceClient.UploadAsync(objectName, message, SerializerFormat.Json,
+                    EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
             }
         }
         catch (Exception exception)
@@ -246,7 +256,8 @@ public abstract class QueuePublisherSubscriber<TPayload>
             // Send the log message
             GetLogger()?.LogError(exception,
                 GetLogMessage(
-                    $"Failed to Write S3 Message with {exception?.InnerException?.Message ?? exception.Message}", null,
+                    $"Failed to Write S3 Message {objectName} with {exception?.InnerException?.Message ?? exception.Message}",
+                    null,
                     null));
         }
     }

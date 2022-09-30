@@ -16,6 +16,15 @@ namespace SyncStream.Service.Queue;
 public class EncryptedQueueMessage<TEncryptedPayload> : QueueMessage<string>
 {
     /// <summary>
+    ///     This method decrypts the <paramref name="hash" /> into a string
+    /// </summary>
+    /// <param name="hash">The hash to decrypt</param>
+    /// <param name="encryptionConfiguration">The cryptographic settings</param>
+    /// <returns>The decrypted <paramref name="hash" /></returns>
+    public static string Decrypt(string hash, QueueServiceEncryptionConfiguration encryptionConfiguration) =>
+        CryptographyService.Decrypt(hash, encryptionConfiguration.Secret);
+
+    /// <summary>
     ///     This method decrypts <paramref name="hash" />
     ///     and returns the <typeparamref name="TEncryptedPayload" /> object
     /// </summary>
@@ -25,9 +34,17 @@ public class EncryptedQueueMessage<TEncryptedPayload> : QueueMessage<string>
     /// <returns>The decrypted <typeparamref name="TEncryptedPayload" /> object</returns>
     public static TOutput Decrypt<TOutput>(string hash, QueueServiceEncryptionConfiguration encryptionConfiguration) =>
         typeof(TOutput) == typeof(string)
-            ? (TOutput)Convert.ChangeType(CryptographyService.Decrypt(hash, encryptionConfiguration.Secret),
-                typeof(TOutput))
+            ? (TOutput)Convert.ChangeType(Decrypt(hash, encryptionConfiguration), typeof(TOutput))
             : CryptographyService.Decrypt<TOutput>(hash, encryptionConfiguration.Secret);
+
+    /// <summary>
+    ///     This method asynchronously decrypts the <paramref name="hash" /> into a string
+    /// </summary>
+    /// <param name="hash">The hash to decrypt</param>
+    /// <param name="encryptionConfiguration">The cryptographic settings</param>
+    /// <returns>An awaitable task containing the decrypted <paramref name="hash" /></returns>
+    public static Task<string> DecryptAsync(string hash, QueueServiceEncryptionConfiguration encryptionConfiguration) =>
+        CryptographyService.DecryptAsync(hash, encryptionConfiguration.Secret);
 
     /// <summary>
     ///     This method asynchronously decrypts <paramref name="hash" />
@@ -37,10 +54,11 @@ public class EncryptedQueueMessage<TEncryptedPayload> : QueueMessage<string>
     /// <param name="encryptionConfiguration">The cryptographic settings</param>
     /// <typeparam name="TOutput">The expected type of the output object</typeparam>
     /// <returns>An awaitable task containing the decrypted <typeparamref name="TEncryptedPayload" /> object</returns>
-    public static Task<TOutput> DecryptAsync<TOutput>(string hash,
-        QueueServiceEncryptionConfiguration encryptionConfiguration) => typeof(TOutput) == typeof(string)
-        ? CryptographyService.DecryptAsync(hash, encryptionConfiguration.Secret) as Task<TOutput>
-        : CryptographyService.DecryptAsync<TOutput>(hash, encryptionConfiguration.Secret);
+    public static async Task<TOutput>
+        DecryptAsync<TOutput>(string hash, QueueServiceEncryptionConfiguration encryptionConfiguration) =>
+        typeof(TOutput) == typeof(string)
+            ? (TOutput)Convert.ChangeType(await DecryptAsync(hash, encryptionConfiguration), typeof(TOutput))
+            : await CryptographyService.DecryptAsync<TOutput>(hash, encryptionConfiguration.Secret);
 
     /// <summary>
     ///     This method provides encryption for <paramref name="value" /> of <typeparamref name="TInput" />

@@ -141,7 +141,7 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
 
         // Send the log message
         GetLogger()?.LogInformation(GetLogMessage(
-            $"Published New {(EndpointConfiguration.Encryption is not null ? "Encrypted " : string.Empty)} Message",
+            $"Published New {(EndpointConfiguration.Encryption is not null ? "Encrypted" : string.Empty)} Message",
             null, null));
     }
 }

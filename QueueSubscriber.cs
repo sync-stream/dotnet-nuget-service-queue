@@ -238,8 +238,6 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         // Set the reason into the message
         message.RejectedReason = reason;
 
-        Console.WriteLine($"\n\n\nRejection:\n{Serializer.JsonSerializer.SerializePretty(message)}\n\n\n");
-
         // Write the message back to S3
         await WriteSimpleStorageServiceMessageAsync(message);
     }

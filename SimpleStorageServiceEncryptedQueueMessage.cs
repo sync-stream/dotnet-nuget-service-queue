@@ -124,6 +124,22 @@ public class SimpleStorageServiceEncryptedQueueMessage<TEnvelope> : EncryptedQue
         DecryptAsync<TEnvelope>(Envelope, encryptionConfiguration);
 
     /// <summary>
+    ///     This method decrypts and returns the payload from the instance
+    /// </summary>
+    /// <param name="encryptionConfiguration">The cryptographic settings</param>
+    /// <returns>The decrypted payload from the instance</returns>
+    public new string GetPayload(QueueServiceEncryptionConfiguration encryptionConfiguration) =>
+        Decrypt(Payload, encryptionConfiguration);
+
+    /// <summary>
+    ///     This method asynchronously decrypts and returns the payload from the instance
+    /// </summary>
+    /// <param name="encryptionConfiguration">The cryptographic settings</param>
+    /// <returns>An awaitable task containing the decrypted payload from the instance</returns>
+    public new Task<string> GetPayloadAsync(QueueServiceEncryptionConfiguration encryptionConfiguration) =>
+        DecryptAsync(Payload, encryptionConfiguration);
+
+    /// <summary>
     ///     This method converts the instance to a decrypted queue message object
     /// </summary>
     /// <param name="envelope">The decrypted envelope from the instance</param>
@@ -144,7 +160,7 @@ public class SimpleStorageServiceEncryptedQueueMessage<TEnvelope> : EncryptedQue
         Id = Id,
 
         // Set the decrypted payload into the response
-        Payload = GetPayload(encryptionConfiguration),
+        Payload = GetEnvelope(encryptionConfiguration),
 
         // Set the published timestamp into the response
         Published = Published,
@@ -228,9 +244,17 @@ public class SimpleStorageServiceEncryptedQueueMessage<TEnvelope> : EncryptedQue
     /// <param name="encryptionConfiguration">The cryptographic settings</param>
     /// <returns>An awaitable task containing the decrypted S3 queue message object</returns>
     public async Task<SimpleStorageServiceQueueMessage<TEnvelope>>
-        ToSimpleStorageServiceQueueMessageAsync(QueueServiceEncryptionConfiguration encryptionConfiguration) =>
-        ToSimpleStorageServiceQueueMessage(await GetEnvelopeAsync(encryptionConfiguration),
-            await GetPayloadAsync(encryptionConfiguration) as string);
+        ToSimpleStorageServiceQueueMessageAsync(QueueServiceEncryptionConfiguration encryptionConfiguration)
+    {
+        // Localize the envelope
+        TEnvelope envelope = await GetEnvelopeAsync(encryptionConfiguration);
+
+        // Localize the payload
+        string payload = await GetPayloadAsync(encryptionConfiguration) as string;
+
+        // We're done, send the new message construct
+        return ToSimpleStorageServiceQueueMessage(envelope, payload);
+    }
 
     /// <summary>
     ///     This method fluidly resets the encrypted envelope into the instance
