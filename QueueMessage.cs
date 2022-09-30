@@ -24,7 +24,7 @@ public class QueueMessage<TPayload>
     /// </summary>
     [JsonPropertyName("created")]
     [XmlAttribute("created")]
-    public DateTime Created { get; set; }
+    public DateTime Created { get; set; } = DateTimeOffset.UtcNow.DateTime;
 
     /// <summary>
     /// This property contains the unique ID of the Queue Message
@@ -57,7 +57,9 @@ public class QueueMessage<TPayload>
     /// <summary>
     /// This method instantiates an empty Queue Message
     /// </summary>
-    public QueueMessage() { }
+    public QueueMessage()
+    {
+    }
 
     /// <summary>
     /// This method instantiates a new Queue Message with a <paramref name="payload" />
@@ -79,7 +81,8 @@ public class QueueMessage<TPayload>
     /// </summary>
     /// <param name="encryptionConfiguration">The cryptographic settings</param>
     /// <returns>An awaitable task containing the encrypted queue message object</returns>
-    public async Task<EncryptedQueueMessage<TPayload>> ToEncryptedQueueMessageAsync(QueueServiceEncryptionConfiguration encryptionConfiguration)
+    public async Task<EncryptedQueueMessage<TPayload>> ToEncryptedQueueMessageAsync(
+        QueueServiceEncryptionConfiguration encryptionConfiguration)
     {
         // Define our response
         EncryptedQueueMessage<TPayload> encryptedQueueMessage = new()

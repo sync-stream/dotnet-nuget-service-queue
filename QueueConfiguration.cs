@@ -3,6 +3,7 @@ using System.Security.Authentication;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 using RabbitMQ.Client;
+using SyncStream.Serializer;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -69,6 +70,13 @@ public class QueueConfiguration
     [JsonPropertyName("SimpleStorageService")]
     [XmlElement("SimpleStorageService")]
     public QueueSimpleStorageServiceConfiguration SimpleStorageService { get; set; }
+
+    /// <summary>
+    ///     This property denotes whether logs should be suppressed or not
+    /// </summary>
+    [JsonPropertyName("SuppressLog")]
+    [XmlAttribute("suppressLog")]
+    public bool SuppressLog { get; set; }
 
     /// <summary>
     ///     This property contains the username with which to authenticate with the RabbitMQ service
@@ -156,50 +164,52 @@ public class QueueConfiguration
     ///     This method generates a new connected RabbitMQ channel from the instance connection
     /// </summary>
     /// <returns>The connected RabbitMQ channel</returns>
-    public IModel NewChannel() =>
-        GetConnection()?.CreateModel();
+    public IModel NewChannel() => GetConnection().CreateModel();
 
     /// <summary>
     ///     This method generates a new connection from the instance
     /// </summary>
     /// <returns>The new RabbitMQ IConnection</returns>
-    public IConnection NewConnection() =>
-        new ConnectionFactory()
+    public IConnection NewConnection() => new ConnectionFactory()
+    {
+        // Define our AMQP TLS protocol
+        AmqpUriSslProtocols = SslProtocols.Tls12,
+
+        // Dispatch the consumers asynchronously
+        DispatchConsumersAsync = true,
+
+        // Set the host name of our queue server into the connection factory
+        HostName = Hostname,
+
+        // Set the password for our queue server into the connection factory
+        Password = Password,
+
+        // Set the port of our queue server into the connection factory
+        Port = Port,
+
+        // Set the SSL settings of our queue server into the connection factory
+        Ssl = new()
         {
-            // Dispatch the consumers asynchronously
-            DispatchConsumersAsync = true,
+            // Set the SSL flag into the connection factory
+            Enabled = Secure,
 
-            // Set the host name of our queue server into the connection factory
-            HostName = Hostname,
+            // Set the SSL server name into the connection factory
+            ServerName = Hostname,
+        },
 
-            // Set the password for our queue server into the connection factory
-            Password = Password,
+        // We want to use background threads for I/O
+        UseBackgroundThreadsForIO = true,
 
-            // Set the port of our queue server into the connection factory
-            Port = Port,
+        // Set the username for our queue server into the connection factory
+        UserName = Username,
 
-            // Set the SSL settings of our queue server into the connection factory
-            Ssl = Secure
-                ? new()
-                {
-                    // Set the acceptable SSL policy errors into the connection factory
-                    AcceptablePolicyErrors = SslPolicyErrors.RemoteCertificateNameMismatch,
+        // Set the virtual host of our queue server into the connection factory
+        VirtualHost = VirtualHost
+    }.CreateConnection();
 
-                    // Set the SSL flag into the connection factory
-                    Enabled = Secure,
-
-                    // Set the SSL server name into the connection factory
-                    ServerName = "rmq",
-
-                    // Set the SSL version into the connection factory
-                    Version = SslProtocols.Tls12
-                }
-                : null,
-
-            // Set the username for our queue server into the connection factory
-            UserName = Username,
-
-            // Set the virtual host of our queue server into the connection factory
-            VirtualHost = VirtualHost
-        }.CreateConnection();
+    /// <summary>
+    ///     This method generates an amqp URI from the instance
+    /// </summary>
+    /// <returns>The amqp URI</returns>
+    public Uri ToUri() => new($"{(Secure ? "amqps" : "amqp")}://${Hostname}:{Port}", UriKind.Absolute);
 }

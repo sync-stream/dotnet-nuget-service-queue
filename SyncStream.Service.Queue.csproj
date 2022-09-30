@@ -2,6 +2,8 @@
 
   <!-- Define our package's properties -->
   <PropertyGroup>
+    
+    <OutputType>exe</OutputType>
 
     <!-- Define our author -->
     <Authors>syncstream-devops</Authors>
@@ -58,7 +60,7 @@
     <PackageReference Include="RabbitMQ.Client" Version="6.4.0" />
 
     <!-- We'll need S3 for Queue Messages -->
-    <PackageReference Include="SyncStream.Aws.S3.Client" Version="1.0.7" />
+    <PackageReference Include="SyncStream.Aws.S3.Client" Version="1.0.10" />
 
     <!-- We'll need cryptography for the encrypted queues -->
     <PackageReference Include="SyncStream.Cryptography" Version="1.0.7" />

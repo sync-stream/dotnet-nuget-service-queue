@@ -1,8 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using System.Xml.Serialization;
-using Microsoft.Extensions.Configuration;
 using SyncStream.Cryptography;
-using SyncStream.Serializer;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -55,10 +53,20 @@ public class SimpleStorageServiceEncryptedQueueMessage<TEnvelope> : EncryptedQue
     /// </summary>
     /// <param name="payload">The payload to encrypt</param>
     /// <param name="encryptionConfiguration">The queue encryption configuration</param>
-    public SimpleStorageServiceEncryptedQueueMessage(TEnvelope payload,
+    public SimpleStorageServiceEncryptedQueueMessage(string payload,
         QueueServiceEncryptionConfiguration encryptionConfiguration) : base(payload, encryptionConfiguration)
     {
     }
+
+    /// <summary>
+    /// This method instantiates an encrypted message with an encrypted <paramref name="payload" /> and plain <paramref name="envelope" />
+    /// </summary>
+    /// <param name="payload">The encrypted payload</param>
+    /// <param name="envelope">The plain envelope object</param>
+    /// <param name="encryptionConfiguration">The cryptographic settings</param>
+    public SimpleStorageServiceEncryptedQueueMessage(string payload, TEnvelope envelope,
+        QueueServiceEncryptionConfiguration encryptionConfiguration) : this(payload, encryptionConfiguration) =>
+        WithEnvelope(envelope, encryptionConfiguration);
 
     /// <summary>
     ///     This method instantiates an encrypted message from an existing <paramref name="message" />
@@ -77,9 +85,6 @@ public class SimpleStorageServiceEncryptedQueueMessage<TEnvelope> : EncryptedQue
         // Set the created timestamp into the instance
         Created = message.Created;
 
-        // Encrypt the envelope and set the hash into the instance
-        Envelope = Encrypt(message.Envelope, encryptionConfiguration);
-
         // Set the unique ID of the message into the instance
         Id = message.Id;
 
@@ -94,44 +99,12 @@ public class SimpleStorageServiceEncryptedQueueMessage<TEnvelope> : EncryptedQue
 
         // Set the rejected reason into the instance
         RejectedReason = message.RejectedReason;
-    }
 
-    /// <summary>
-    ///     This method instantiates a new encrypted S3 queue message with a
-    ///     <paramref name="payload" /> from the <paramref name="section" />
-    ///     of the application's <paramref name="configuration" />
-    /// </summary>
-    /// <param name="payload">The payload to be encrypted and sent to the queue</param>
-    /// <param name="configuration">The application's configuration provider</param>
-    /// <param name="section">The section of the application's configuration containing the encryption values</param>
-    public SimpleStorageServiceEncryptedQueueMessage(TEnvelope payload, IConfiguration configuration, string section) :
-        this(payload, configuration.GetSection(section).Get<QueueServiceEncryptionConfiguration>())
-    {
-    }
+        // Set the envelope into the message
+        WithEnvelope(message.Envelope, encryptionConfiguration);
 
-    /// <summary>
-    ///     This method instantiates a new encrypted S3 queue message with a
-    ///     <paramref name="payload" /> from the <paramref name="section" />
-    ///     of the application's configuration
-    /// </summary>
-    /// <param name="payload">The payload to be encrypted and sent to the queue</param>
-    /// <param name="section">The section of the application's configuration containing the encryption values</param>
-    public SimpleStorageServiceEncryptedQueueMessage(TEnvelope payload, IConfigurationSection section) : this(payload,
-        section.Get<QueueServiceEncryptionConfiguration>())
-    {
-    }
-
-    /// <summary>
-    ///     This method instantiates a new encrypted S3 queue message with a
-    ///     <paramref name="payload" /> from the <paramref name="secret" />
-    ///     and optional number of recursive encryption <paramref name="passes" />
-    /// </summary>
-    /// <param name="payload">The payload to be encrypted and sent to the queue</param>
-    /// <param name="secret">The secret key used for encryption and decryption</param>
-    /// <param name="passes">Optional, number of times to recursively encrypt the data</param>
-    public SimpleStorageServiceEncryptedQueueMessage(TEnvelope payload, string secret, int passes = 1) : this(payload,
-        new QueueServiceEncryptionConfiguration(secret, passes))
-    {
+        // Set the payload into the instance
+        WithPayload(message.Payload, encryptionConfiguration);
     }
 
     /// <summary>
@@ -154,9 +127,11 @@ public class SimpleStorageServiceEncryptedQueueMessage<TEnvelope> : EncryptedQue
     ///     This method converts the instance to a decrypted queue message object
     /// </summary>
     /// <param name="envelope">The decrypted envelope from the instance</param>
+    /// <param name="encryptionConfiguration">The cryptographic settings</param>
     /// <param name="message">Optional, decrypted S3 queue message</param>
     /// <returns>The decrypted queue message</returns>
     public QueueMessage<TEnvelope> ToQueueMessage(TEnvelope envelope,
+        QueueServiceEncryptionConfiguration encryptionConfiguration,
         SimpleStorageServiceQueueMessage<TEnvelope> message = null) => new()
     {
         // Set the consumed timestamp into the response
@@ -169,13 +144,13 @@ public class SimpleStorageServiceEncryptedQueueMessage<TEnvelope> : EncryptedQue
         Id = Id,
 
         // Set the decrypted payload into the response
-        Payload = envelope,
+        Payload = GetPayload(encryptionConfiguration),
 
         // Set the published timestamp into the response
         Published = Published,
 
         // Set the S3 message into the response
-        SimpleStorageServiceMessage = message
+        SimpleStorageServiceMessage = message ?? ToSimpleStorageServiceQueueMessage(encryptionConfiguration)
     };
 
     /// <summary>
@@ -184,7 +159,7 @@ public class SimpleStorageServiceEncryptedQueueMessage<TEnvelope> : EncryptedQue
     /// <param name="encryptionConfiguration">The cryptographic settings</param>
     /// <returns>The decrypted queue message object</returns>
     public new QueueMessage<TEnvelope> ToQueueMessage(QueueServiceEncryptionConfiguration encryptionConfiguration) =>
-        ToQueueMessage(GetEnvelope(encryptionConfiguration),
+        ToQueueMessage(GetEnvelope(encryptionConfiguration), encryptionConfiguration,
             ToSimpleStorageServiceQueueMessage(encryptionConfiguration));
 
     /// <summary>
@@ -194,7 +169,7 @@ public class SimpleStorageServiceEncryptedQueueMessage<TEnvelope> : EncryptedQue
     /// <returns>An awaitable task containing the decrypted queue message object</returns>
     public new async Task<QueueMessage<TEnvelope>>
         ToQueueMessageAsync(QueueServiceEncryptionConfiguration encryptionConfiguration) => ToQueueMessage(
-        await GetEnvelopeAsync(encryptionConfiguration),
+        await GetEnvelopeAsync(encryptionConfiguration), encryptionConfiguration,
         await ToSimpleStorageServiceQueueMessageAsync(encryptionConfiguration));
 
     /// <summary>

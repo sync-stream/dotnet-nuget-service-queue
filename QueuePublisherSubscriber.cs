@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using SyncStream.Aws.S3.Client;
 using SyncStream.Serializer;
 
@@ -14,7 +15,7 @@ public abstract class QueuePublisherSubscriber<TPayload>
     /// <summary>
     ///     This property contains the log service provider for the instance
     /// </summary>
-    protected readonly ILogger<IQueueService> Logger;
+    private readonly ILogger<IQueueService> _logger;
 
     /// <summary>
     ///     This property contains our queue endpoint configuration
@@ -45,37 +46,143 @@ public abstract class QueuePublisherSubscriber<TPayload>
             EndpointConfiguration.SimpleStorageService = simpleStorageServiceConfigurationOverride;
 
         // Set our log service provider into the instance
-        Logger = logServiceProvider;
+        _logger = logServiceProvider;
     }
+
+    /// <summary>
+    /// This method generates the delegate type string from a <paramref name="delegateSubscriber" />
+    /// </summary>
+    /// <param name="delegateSubscriber">The subscriber delegate</param>
+    /// <returns>The delegate type string for <paramref name="delegateSubscriber" /></returns>
+    private string GetDelegateType(IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber) =>
+        string.Format("{0}{1}<QueueMessage<{2}>>",
+            !string.IsNullOrEmpty(delegateSubscriber.Method.DeclaringType?.Name)
+                ? $"{delegateSubscriber.Method.DeclaringType.Name}."
+                : string.Empty,
+            Regex.Replace(delegateSubscriber.Method.Name, @"^<(.*)>.*$", "$1", RegexOptions.IgnoreCase),
+            typeof(TPayload).Name);
+
+    /// <summary>
+    ///     This method generates the publisher or subscriber message type
+    /// </summary>
+    /// <returns>The message type string</returns>
+    private string GetMessageType() => string.Format("{0}<{1}>",
+        EndpointConfiguration.Encryption is not null && EndpointConfiguration.SimpleStorageService is not null
+            ? "SimpleStorageServiceEncryptedQueueMessage"
+            : EndpointConfiguration.Encryption is not null
+                ? "EncryptedQueueMessage"
+                : EndpointConfiguration.SimpleStorageService is not null
+                    ? "SimpleStorageServiceQueueMessage"
+                    : "QueueMessage",
+        typeof(TPayload).Name);
+
+    /// <summary>
+    ///     This method returns the logger from the instance if logging isn't suppresses
+    /// </summary>
+    /// <returns>The log service provider from the instance if logging isn't suppressed, otherwise <code>null</code></returns>
+    protected ILogger<IQueueService> GetLogger() => EndpointConfiguration.SuppressLog ? null : _logger;
+
+    /// <summary>
+    ///     This method generates a log message for a publisher or subscriber
+    /// </summary>
+    /// <param name="message">The message to log</param>
+    /// <param name="queueMessage">Optional, queue message and payload</param>
+    /// <param name="delegateSubscriber">Optional, subscriber delegate</param>
+    /// <returns>The formatted and standardized log message</returns>
+    protected string GetLogMessage(string message, QueueMessage<TPayload> queueMessage = null,
+        IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber = null)
+    {
+        // Define our log message header parts
+        List<string> logMessageHeaders = new();
+
+        // Check for a message and add the parts
+        if (queueMessage is not null)
+            logMessageHeaders.AddRange(new[] { $"id: {queueMessage.Id}", $"published: {queueMessage.Published:O}" });
+
+        // Add the queue endpoint to the parts
+        logMessageHeaders.Add($"endpoint: {EndpointConfiguration.Endpoint}");
+
+        // Check for a delegate subscriber and add the parts
+        if (delegateSubscriber is not null) logMessageHeaders.Add($"delegate: {GetDelegateType(delegateSubscriber)}");
+
+        // Add the message type part
+        logMessageHeaders.Add($"type: {GetMessageType()}");
+
+        // We're done, return our message
+        return $"[{DateTime.Now:O}]({string.Join(", ", logMessageHeaders)})" + (!string.IsNullOrEmpty(message) &&
+            !string.IsNullOrWhiteSpace(message)
+                ? $"\n\t{message}"
+                : string.Empty);
+    }
+
+    /// <summary>
+    ///     This method serializes a complex message for the publisher or subscriber then generates a log message
+    /// </summary>
+    /// <param name="message">The <typeparamref name="TLogMessage" /> object to serialize</param>
+    /// <param name="queueMessage">Optional, queue message and payload</param>
+    /// <param name="delegateSubscriber">Optional, subscriber delegate</param>
+    /// <param name="format">Optional, serialization format to use</param>
+    /// <returns>The formatted and standardized log message</returns>
+    protected string GetLogMessage<TLogMessage>(TLogMessage message, QueueMessage<TPayload> queueMessage = null,
+        IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber = null,
+        SerializerFormat format = SerializerFormat.Json) => GetLogMessage(
+        $"\n{(format is SerializerFormat.Json ? JsonSerializer.SerializePretty(message) : XmlSerializer.SerializePretty(message))}\n\n",
+        queueMessage, delegateSubscriber);
 
     /// <summary>
     ///     This method asynchronously downloads an alias message from AWS S3
     /// </summary>
     /// <param name="objectName">The object path of the alias message to download</param>
     /// <returns>An awaitable task containing the alias message</returns>
-    public async Task<SimpleStorageServiceQueueMessage<TPayload>> DownloadSimpleStorageServiceMessageAsync(
+    protected async Task<SimpleStorageServiceQueueMessage<TPayload>> DownloadSimpleStorageServiceMessageAsync(
         string objectName)
     {
         // Check for S3 capabilities
-        if (!IsQueueBackedBySimpleStorageService()) return null;
+        if (EndpointConfiguration.SimpleStorageService is null) return null;
 
-        // Check for encryption
-        if (EndpointConfiguration.Encryption is not null && EndpointConfiguration.SimpleStorageService.EncryptObjects)
+        // Try to download the S3 message
+        try
         {
-            // Download the message
-            SimpleStorageServiceEncryptedQueueMessage<TPayload> encryptedMessage =
-                await AwsSimpleStorageServiceClient
-                    .DownloadObjectAsync<SimpleStorageServiceEncryptedQueueMessage<TPayload>>(objectName,
-                        SerializerFormat.Json, EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+            // Check for encryption
+            if (EndpointConfiguration.Encryption is not null &&
+                EndpointConfiguration.SimpleStorageService.EncryptObjects)
+            {
+                // Send the log message
+                GetLogger()?.LogInformation(GetLogMessage("Downloading Encrypted S3 Message", null, null));
 
-            // We're done, return the decrypted message
-            return await encryptedMessage.ToSimpleStorageServiceQueueMessageAsync(EndpointConfiguration.Encryption);
+                // Download the message
+                SimpleStorageServiceEncryptedQueueMessage<TPayload> encryptedMessage =
+                    await AwsSimpleStorageServiceClient
+                        .DownloadObjectAsync<SimpleStorageServiceEncryptedQueueMessage<TPayload>>($"{objectName}.json",
+                            SerializerFormat.Json, EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+
+                // Send the log message
+                GetLogger()?.LogInformation(GetLogMessage("Decrypting S3 Message", null, null));
+
+                // We're done, return the decrypted message
+                return await encryptedMessage.ToSimpleStorageServiceQueueMessageAsync(EndpointConfiguration.Encryption);
+            }
+
+            // Send the log message
+            GetLogger()?.LogInformation(GetLogMessage("Downloading S3 Message", null, null));
+
+            // We're done, download the object from S3 then return it
+            return await AwsSimpleStorageServiceClient.DownloadObjectAsync<SimpleStorageServiceQueueMessage<TPayload>>(
+                $"{objectName}.json",
+                configuration: EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
         }
 
-        // We're done, download the object from S3 then return it
-        return await AwsSimpleStorageServiceClient.DownloadObjectAsync<SimpleStorageServiceQueueMessage<TPayload>>(
-            objectName,
-            configuration: EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+        catch (Exception exception)
+        {
+            // Send the log message
+            GetLogger()?.LogError(exception,
+                GetLogMessage(
+                    $"Failed to Download S3 Message with {exception.InnerException?.Message ?? exception.Message}",
+                    null, null));
+
+            // We're done, return null
+            return null;
+        }
     }
 
     /// <summary>
@@ -83,14 +190,10 @@ public abstract class QueuePublisherSubscriber<TPayload>
     /// </summary>
     /// <param name="messageId">The unique ID of the queue message</param>
     /// <returns>The object name</returns>
-    public string GenerateObjectName(Guid messageId) =>
-        $"{EndpointConfiguration.SimpleStorageService?.BucketPrefix}/{EndpointConfiguration}/{messageId}";
-
-    /// <summary>
-    ///     This method determines whether the queue is backed by AWS S3 or not
-    /// </summary>
-    /// <returns>Boolean denoting AWS S3 message aliasing</returns>
-    public bool IsQueueBackedBySimpleStorageService() => EndpointConfiguration.SimpleStorageService is not null;
+    protected string GenerateObjectName(Guid messageId) =>
+        Regex.Replace(
+            $"{EndpointConfiguration.SimpleStorageService?.BucketPrefix}/{EndpointConfiguration?.Endpoint}/{messageId}",
+            @"/+", @"/");
 
     /// <summary>
     ///     This method asynchronously writes the <paramref name="message" /> to
@@ -98,22 +201,53 @@ public abstract class QueuePublisherSubscriber<TPayload>
     /// </summary>
     /// <param name="message">The message to store</param>
     /// <returns>An awaitable task with a void result</returns>
-    public async Task WriteSimpleStorageServiceMessageAsync(SimpleStorageServiceQueueMessage<TPayload> message)
+    protected async Task WriteSimpleStorageServiceMessageAsync(SimpleStorageServiceQueueMessage<TPayload> message)
     {
         // Check for S3 capabilities
-        if (!IsQueueBackedBySimpleStorageService()) return;
+        if (EndpointConfiguration.SimpleStorageService is null) return;
 
-        // Check for encryption capabilities then encrypt the S3 JSON and upload it
-        if (EndpointConfiguration.Encryption is not null && EndpointConfiguration.SimpleStorageService.EncryptObjects)
-            await AwsSimpleStorageServiceClient.UploadAsync($"{message.Payload}.json",
-                await message.ToSimpleStorageServiceEncryptedQueueMessageAsync(EndpointConfiguration.Encryption),
-                format: SerializerFormat.Json,
-                configuration: EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+        // Try to write the message
+        try
+        {
+            // Check for encryption capabilities
+            if (EndpointConfiguration.Encryption is not null &&
+                EndpointConfiguration.SimpleStorageService.EncryptObjects)
+            {
+                // Send the log message
+                GetLogger()?.LogInformation(GetLogMessage("Encrypting S3 Message", null, null));
 
-        // Otherwise, upload the message JSON
-        else
-            await AwsSimpleStorageServiceClient.UploadAsync($"{message.Payload}.json", message,
-                format: SerializerFormat.Json,
-                configuration: EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+                // Encrypt the S3 message
+                SimpleStorageServiceEncryptedQueueMessage<TPayload> encryptedMessage =
+                    await message.ToSimpleStorageServiceEncryptedQueueMessageAsync(EndpointConfiguration.Encryption);
+
+                // Send the log message
+                GetLogger()?.LogInformation(GetLogMessage("Uploading Encrypted S3 Message", null, null));
+
+                // Upload the encrypted S3 message
+                await AwsSimpleStorageServiceClient.UploadAsync($"{message.Payload}.json", encryptedMessage,
+                    format: SerializerFormat.Json,
+                    configuration: EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+            }
+
+            // Otherwise, upload the message JSON
+            else
+            {
+                // Send the log message
+                GetLogger()?.LogInformation(GetLogMessage("Uploading S3 Message", null, null));
+
+                // Upload the S3 message
+                await AwsSimpleStorageServiceClient.UploadAsync($"{message.Payload}.json", message,
+                    format: SerializerFormat.Json,
+                    configuration: EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+            }
+        }
+        catch (Exception exception)
+        {
+            // Send the log message
+            GetLogger()?.LogError(exception,
+                GetLogMessage(
+                    $"Failed to Write S3 Message with {exception?.InnerException?.Message ?? exception.Message}", null,
+                    null));
+        }
     }
 }

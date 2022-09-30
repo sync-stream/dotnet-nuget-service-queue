@@ -1,8 +1,8 @@
 ﻿using System.Text;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -35,10 +35,13 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
     ///     This method asynchronously acknowledges an S3 alias message
     /// </summary>
     /// <param name="objectName">The object path to the message on S3</param>
-    public async Task AcknowledgeSimpleStorageServiceMessageAsync(string objectName)
+    private async Task AcknowledgeSimpleStorageServiceMessageAsync(string objectName)
     {
         // Ensure we have an S3 configuration in the instance
-        if (!IsQueueBackedBySimpleStorageService()) return;
+        if (EndpointConfiguration.SimpleStorageService is null) return;
+
+        // Send the log message
+        GetLogger()?.LogInformation(GetLogMessage($"Acknowledging S3 Message at {objectName}", null, null));
 
         // Download the alias message from S3
         SimpleStorageServiceQueueMessage<TPayload> message = await DownloadSimpleStorageServiceMessageAsync(objectName);
@@ -59,7 +62,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
     /// <param name="stoppingToken">The token denoting task cancellation</param>
     /// <param name="objectName">Optional path to object in S3</param>
     /// <returns>An awaitable task containing a void result</returns>
-    public async Task HandleMessageAsync(ulong deliveryTag,
+    private async Task HandleMessageAsync(ulong deliveryTag,
         IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber,
         QueueMessage<TPayload> message, CancellationToken stoppingToken = default, string objectName = null)
     {
@@ -70,56 +73,38 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         try
         {
             // Send the log message
-            Logger?.LogDebug(
-                "Message Consumer Invocation (id: {Id}, published: {Published}, alias: {Alias}, type: {Type}.{Name}<QueueMessage<{Payload}>>('{Endpoint}'))",
-                message.Id, message.Published?.ToString("O"),
-                objectName,
-                delegateSubscriber.Method.DeclaringType?.Name ?? "Delegate", delegateSubscriber.Method.Name,
-                typeof(TPayload), EndpointConfiguration);
+            GetLogger()?.LogInformation(GetLogMessage("Begin Consumer Invocation with Message", message,
+                delegateSubscriber));
 
             // Execute the subscriber
             await delegateSubscriber.Invoke(message, stoppingToken);
 
             // Send the log message
-            Logger?.LogDebug(
-                "Message Consumer Invoked (id: {Id}, published: {Published}, alias: {Alias}, type: {Type}.{Name}<QueueMessage<{Payload}>>('{Endpoint}'))",
-                message.Id, message.Published?.ToString("O"),
-                objectName,
-                delegateSubscriber.Method.DeclaringType?.Name ?? "Delegate", delegateSubscriber.Method.Name,
-                typeof(TPayload), EndpointConfiguration);
+            GetLogger()?.LogInformation(GetLogMessage("Consumer Invoked with Message", message, delegateSubscriber));
 
             // We're done, acknowledge the message
             EndpointConfiguration.GetChannel().BasicAck(deliveryTag, false);
 
             // Check for S3 aliasing and acknowledge the alias message
-            if (IsQueueBackedBySimpleStorageService() && objectName is not null)
+            if (EndpointConfiguration.SimpleStorageService is not null && objectName is not null)
                 await AcknowledgeSimpleStorageServiceMessageAsync(objectName);
 
             // Send the log message
-            Logger?.LogDebug(
-                "Message Acknowledged (id: {Id}, published: {Published}, consumed: {Consumed}, alias: {Alias}, type: {Type}.{Name}<QueueMessage<{Payload}>>('{Endpoint}'))",
-                message.Id, message.Published?.ToString("O"),
-                message.Consumed?.ToString("O"),
-                objectName,
-                delegateSubscriber.Method.DeclaringType?.Name ?? "Delegate", delegateSubscriber.Method.Name,
-                typeof(TPayload), EndpointConfiguration);
+            GetLogger()?.LogInformation(GetLogMessage("Message Acknowledged by Consumer", message, delegateSubscriber));
         }
         catch (Exception subscriberException)
         {
             // Check for S3 aliasing and reject the alias message
-            if (IsQueueBackedBySimpleStorageService() && objectName is not null)
+            if (EndpointConfiguration.SimpleStorageService is not null && objectName is not null)
                 await RejectSimpleStorageServiceMessageAsync(objectName, subscriberException);
 
             // We're done, reject the message
             EndpointConfiguration.GetChannel().BasicReject(deliveryTag, false);
 
             // Send the log message
-            Logger?.LogError(subscriberException,
-                "Message Consumer Rejected (id: {Id}, published: {Published}, alias: {Alias}, type: {Type}.{Name}<QueueMessage<{Payload}>>('{Endpoint}'))",
-                message.Id, message.Published?.ToString("O"),
-                objectName,
-                delegateSubscriber.Method.DeclaringType?.Name ?? "Delegate", delegateSubscriber.Method.Name,
-                typeof(TPayload), EndpointConfiguration);
+            GetLogger()?.LogError(subscriberException,
+                GetLogMessage($"Message Rejected by Consumer with {subscriberException.Message}", message,
+                    delegateSubscriber));
         }
     }
 
@@ -130,26 +115,26 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
     /// <param name="delegateSubscriber">The subscriber to pipe the pre-processed message to</param>
     /// <param name="stoppingToken">The token representing the cancellation of the task</param>
     /// <returns></returns>
-    public async Task IncomingMessageAsync(BasicDeliverEventArgs arguments,
+    private async Task IncomingMessageAsync(BasicDeliverEventArgs arguments,
         IQueueService.DelegateSubscriberAsync<TPayload> delegateSubscriber, CancellationToken stoppingToken = default)
     {
         // Send the log message
-        Logger?.LogInformation("Message Incoming");
+        GetLogger()?.LogInformation(GetLogMessage("Incoming Message", null, delegateSubscriber));
+
+        // Define our alias message
+        QueueMessage<string> aliasMessage = null;
 
         // Try to deserialize the message and execute the subscriber
         try
         {
-            // Define our alias message
-            QueueMessage<string> aliasMessage = null;
-
             // Define our message
             QueueMessage<TPayload> message;
 
             // Check for S3 then download and process the message
-            if (IsQueueBackedBySimpleStorageService())
+            if (EndpointConfiguration.SimpleStorageService is not null)
             {
                 // Parse the alias message
-                aliasMessage = ParseIncomingMessage<string>(arguments);
+                aliasMessage = await ParseIncomingMessageAsync<string>(arguments);
 
                 // Download the alias message from S3
                 SimpleStorageServiceQueueMessage<TPayload> bucketMessage =
@@ -160,11 +145,10 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
             }
 
             // Otherwise, parse the message normally
-            else message = ParseIncomingMessage(arguments);
+            else message = await ParseIncomingMessageAsync(arguments);
 
             // Send the log message
-            Logger?.LogDebug("Message Received (id: {MessageId}, published: {MessagePublished})",
-                message.Id, message.Published);
+            GetLogger()?.LogInformation(GetLogMessage("Incoming Message Received", message, delegateSubscriber));
 
             // We're done execute our message handle and return its task
             await HandleMessageAsync(arguments.DeliveryTag, delegateSubscriber, message, stoppingToken,
@@ -177,37 +161,73 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
             // We're done, reject the message
             EndpointConfiguration.GetChannel().BasicReject(arguments.DeliveryTag, false);
 
+            // Check for S3 aliasing and reject the S3 message
+            if (EndpointConfiguration.SimpleStorageService is not null && aliasMessage?.Payload is not null)
+                await RejectSimpleStorageServiceMessageAsync(aliasMessage.Payload, exception);
+
             // Send the log message
-            Logger?.LogError(exception, "Message Rejected");
+            GetLogger()?.LogError(exception,
+                GetLogMessage($"Message Rejected with {exception.Message}", null, delegateSubscriber));
         }
+    }
+
+    /// <summary>
+    ///     This method asynchronously parses an incoming message from the queue
+    /// </summary>
+    /// <param name="arguments">The incoming message event</param>
+    /// <returns>An awaitable task containing the parsed message from <paramref name="arguments" /></returns>
+    /// <typeparam name="TPayloadOverride">The expected type of the message</typeparam>
+    private async Task<QueueMessage<TPayloadOverride>> ParseIncomingMessageAsync<TPayloadOverride>(
+        BasicDeliverEventArgs arguments)
+    {
+        // Convert the message to a string
+        string message = Encoding.UTF8.GetString(arguments.Body.ToArray());
+
+        // Check for encryption
+        if (EndpointConfiguration.Encryption is not null)
+        {
+            // Send the log message
+            GetLogger()?.LogInformation(GetLogMessage("Deserializing Incoming Encrypted Message", null, null));
+
+            // Localize the message
+            EncryptedQueueMessage<TPayloadOverride> encryptedMessage =
+                Serializer.JsonSerializer.Deserialize<EncryptedQueueMessage<TPayloadOverride>>(message);
+
+            // Send the log message
+            GetLogger()?.LogInformation(GetLogMessage("Decrypting Incoming Message", null, null));
+
+            // Decrypt and return the message
+            return await encryptedMessage.ToQueueMessageAsync(EndpointConfiguration.Encryption);
+        }
+
+        // Send the log message
+        GetLogger()?.LogInformation(GetLogMessage("Deserializing Incoming Message", null, null));
+
+        // Deserialize and return the message
+        return JsonSerializer.Deserialize<QueueMessage<TPayloadOverride>>(message);
     }
 
     /// <summary>
     ///     This method parses an incoming message from the queue
     /// </summary>
     /// <param name="arguments">The incoming message event</param>
-    /// <returns>The parsed message from <paramref name="arguments" /></returns>
-    public QueueMessage<TPayload> ParseIncomingMessage(BasicDeliverEventArgs arguments) =>
-        JsonSerializer.Deserialize<QueueMessage<TPayload>>(Encoding.UTF8.GetString(arguments.Body.ToArray()));
-
-    /// <summary>
-    ///     This method parses an incoming message from the queue
-    /// </summary>
-    /// <param name="arguments">The incoming message event</param>
-    /// <returns>The parsed message from <paramref name="arguments" /></returns>
-    /// <typeparam name="TPayloadOverride">The expected type of the message</typeparam>
-    public QueueMessage<TPayloadOverride> ParseIncomingMessage<TPayloadOverride>(BasicDeliverEventArgs arguments) =>
-        JsonSerializer.Deserialize<QueueMessage<TPayloadOverride>>(Encoding.UTF8.GetString(arguments.Body.ToArray()));
+    /// <returns>An awaitable task containing the parsed message from <paramref name="arguments" /></returns>
+    private Task<QueueMessage<TPayload>> ParseIncomingMessageAsync(BasicDeliverEventArgs arguments) =>
+        ParseIncomingMessageAsync<TPayload>(arguments);
 
     /// <summary>
     ///     This method asynchronously rejects an S3 alias message
     /// </summary>
     /// <param name="objectName">The object path to the message on S3</param>
     /// <param name="reason">The reason the message was rejected</param>
-    public async Task RejectSimpleStorageServiceMessageAsync(string objectName, QueueMessageRejectedReason reason)
+    private async Task RejectSimpleStorageServiceMessageAsync(string objectName, QueueMessageRejectedReason reason)
     {
         // Ensure we have an S3 configuration in the instance
-        if (!IsQueueBackedBySimpleStorageService()) return;
+        if (EndpointConfiguration.SimpleStorageService is null) return;
+
+        // Send the log message
+        GetLogger()?.LogError(GetLogMessage($"Rejected S3 Message at {objectName} with {reason.Message}", null,
+            null));
 
         // Download the alias message from S3
         SimpleStorageServiceQueueMessage<TPayload> message = await DownloadSimpleStorageServiceMessageAsync(objectName);
@@ -217,6 +237,8 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
 
         // Set the reason into the message
         message.RejectedReason = reason;
+
+        Console.WriteLine($"\n\n\nRejection:\n{Serializer.JsonSerializer.SerializePretty(message)}\n\n\n");
 
         // Write the message back to S3
         await WriteSimpleStorageServiceMessageAsync(message);
@@ -235,17 +257,25 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         _consumer.Received += (_, arguments) =>
         {
             // Halt execution if the cancellation token has been requested
-            if (stoppingToken.IsCancellationRequested) return Task.CompletedTask;
+            if (stoppingToken.IsCancellationRequested)
+            {
+                // Send the log message
+                GetLogger()?.LogInformation(GetLogMessage($"Consumer Cancelled with {stoppingToken.ToString()}", null,
+                    delegateSubscriber));
+
+                // We're done, return the completed task
+                return Task.CompletedTask;
+            }
 
             // We're done, return the awaiting message handler
             return IncomingMessageAsync(arguments, delegateSubscriber, stoppingToken);
         };
 
-        // Send the log message
-        Logger?.LogDebug("Consuming {Endpoint}", EndpointConfiguration);
-
         // Consume messages from the queue
-        EndpointConfiguration.GetChannel().BasicConsume(_consumer, EndpointConfiguration.Endpoint);
+        _consumer.Model.BasicConsume(_consumer, EndpointConfiguration.Endpoint);
+
+        // Send the log message
+        GetLogger()?.LogInformation(GetLogMessage("Consumer Subscribed", null, delegateSubscriber));
 
         // We're done, return the completed task
         return Task.CompletedTask;

@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using SyncStream.Serializer;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -46,7 +45,7 @@ public class QueueService : IQueueService
     /// This method registers the encryption <paramref name="configuration" /> as the global (default) for all queues
     /// </summary>
     /// <param name="configuration">The encryption configuration for the queue</param>
-    /// <returns><param name="configuration"></param></returns>
+    /// <returns><paramref name="configuration" /></returns>
     public static QueueServiceEncryptionConfiguration RegisterDefaultEncryption(
         QueueServiceEncryptionConfiguration configuration)
     {
@@ -226,8 +225,8 @@ public class QueueService : IQueueService
     /// </summary>
     /// <param name="payload">The content of the message to publish</param>
     /// <typeparam name="TPayload">The expected type of the message payload</typeparam>
-    /// <returns>An awaitable task containing the published message</returns>
-    public Task<QueueMessage<TPayload>> PublishAsync<TPayload>(TPayload payload) =>
+    /// <returns>An awaitable task containing a void result</returns>
+    public Task PublishAsync<TPayload>(TPayload payload) =>
         new QueuePublisher<TPayload>(_logger, _queue ?? DefaultEndpointConfiguration,
             _queue?.SimpleStorageService ??
             _simpleStorageServiceConfiguration ?? DefaultSimpleStorageServiceConfiguration,
@@ -240,7 +239,7 @@ public class QueueService : IQueueService
     /// <param name="payload">The content of the message to publish</param>
     /// <typeparam name="TPayload">The expected type of the message payload</typeparam>
     /// <returns>An awaitable task containing the published message</returns>
-    public Task<QueueMessage<TPayload>> PublishAsync<TPayload>(string queueName, TPayload payload) =>
+    public Task PublishAsync<TPayload>(string queueName, TPayload payload) =>
         SetQueueEndpoint(GetEndpointConfiguration(queueName)).PublishAsync(payload);
 
     /// <summary>
@@ -380,9 +379,6 @@ public class QueueService : IQueueService
     {
         // Reset the queue endpoint configuration into the instance
         _queue = queueEndpointConfiguration;
-
-        // Log the queue
-        Console.WriteLine($"\n\n\nQueue:\t{JsonSerializer.SerializePretty(_queue)}\n\n\n");
 
         // Check for an encryption configuration and use it
         if (_queue.Encryption is not null) _encryption = _queue.Encryption;

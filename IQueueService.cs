@@ -34,7 +34,7 @@ public interface IQueueService
     /// <param name="payload">The content of the message to publish</param>
     /// <typeparam name="TPayload">The expected type of the message payload</typeparam>
     /// <returns>An awaitable task containing the published message</returns>
-    public Task<QueueMessage<TPayload>> PublishAsync<TPayload>(TPayload payload);
+    public Task PublishAsync<TPayload>(TPayload payload);
 
     /// <summary>
     /// This method asynchronously publishes a message to <paramref name="queueName"/> and optionally to S3
@@ -43,7 +43,7 @@ public interface IQueueService
     /// <param name="payload">The content of the message to publish</param>
     /// <typeparam name="TPayload">The expected type of the message payload</typeparam>
     /// <returns>An awaitable task containing the published message</returns>
-    public Task<QueueMessage<TPayload>> PublishAsync<TPayload>(string queueName, TPayload payload);
+    public Task PublishAsync<TPayload>(string queueName, TPayload payload);
 
     /// <summary>
     /// This method registers a RabbitMQ endpoint

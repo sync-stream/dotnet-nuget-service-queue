@@ -1,5 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using System.Xml.Serialization;
+using SyncStream.Cryptography;
+using SyncStream.Serializer;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -19,6 +21,13 @@ public class SimpleStorageServiceQueueMessage<TEnvelope> : QueueMessage<string>,
     [JsonPropertyName("acknowledged")]
     [XmlElement("acknowledged")]
     public DateTime? Acknowledged { get; set; }
+
+    /// <summary>
+    /// This property contains the payload for the Queue Message
+    /// </summary>
+    [JsonPropertyName("payload")]
+    [XmlElement("payload")]
+    public new string Payload { get; set; }
 
     /// <summary>
     ///     This property contains the original payload for the message
@@ -64,35 +73,42 @@ public class SimpleStorageServiceQueueMessage<TEnvelope> : QueueMessage<string>,
     /// <param name="envelope">Optional, encrypted envelope</param>
     /// <returns>The current instance converted to an encrypted s3 Queue message object without a payload or envelope</returns>
     public SimpleStorageServiceEncryptedQueueMessage<TEnvelope> ToSimpleStorageServiceEncryptedQueueMessage(
-        string payload = null, string envelope = null) => new()
+        string payload = null, string envelope = null)
     {
-        // Set the acknowledged timestamp into the response
-        Acknowledged = Acknowledged,
+        // Define our response
+        SimpleStorageServiceEncryptedQueueMessage<TEnvelope> response = new()
+        {
+            // Set the acknowledged timestamp into the response
+            Acknowledged = Acknowledged,
 
-        // Set the consumed timestamp into the response
-        Consumed = Consumed,
+            // Set the consumed timestamp into the response
+            Consumed = Consumed,
 
-        // St the creation timestamp into the response
-        Created = Created,
+            // St the creation timestamp into the response
+            Created = Created,
 
-        // Set the encrypted envelope into the instance
-        Envelope = envelope,
+            // Set the unique ID into the response
+            Id = Id,
 
-        // Set the unique ID into the response
-        Id = Id,
+            // Set the published timestamp into the response
+            Published = Published,
 
-        // Set the encrypted payload into the response
-        Payload = payload,
+            // Set the rejection timestamp into the response
+            Rejected = Rejected,
 
-        // Set the published timestamp into the response
-        Published = Published,
+            // Set the rejection reason into the response
+            RejectedReason = RejectedReason
+        };
 
-        // Set the rejection timestamp into the response
-        Rejected = Rejected,
+        // Check for a provided envelope and use it
+        if (envelope is not null) response.Envelope = envelope;
 
-        // Set the rejection reason into the response
-        RejectedReason = RejectedReason
-    };
+        // Check for a provided payload and use it
+        if (payload is not null) response.Payload = payload;
+
+        // We're done, send the response
+        return response;
+    }
 
     /// <summary>
     ///     This method converts the current instance into an encrypted S3 queue message object
@@ -113,6 +129,28 @@ public class SimpleStorageServiceQueueMessage<TEnvelope> : QueueMessage<string>,
         ToSimpleStorageServiceEncryptedQueueMessageAsync(QueueServiceEncryptionConfiguration encryptionConfiguration) =>
         await (await ToSimpleStorageServiceEncryptedQueueMessage().WithEnvelopeAsync(Envelope, encryptionConfiguration))
             .WithPayloadAsync(Payload, encryptionConfiguration);
+
+    /// <summary>
+    ///     This method converts the instance to an alias queue message
+    /// </summary>
+    /// <returns>The queue alias message</returns>
+    public QueueMessage<string> ToQueueAliasMessage() => new()
+    {
+        // Set the consumed timestamp into the response
+        Consumed = Consumed,
+
+        // Set the creation timestamp into the response
+        Created = Created,
+
+        // Set the unique message ID into the response
+        Id = Id,
+
+        // Set the payload envelope into the response
+        Payload = Payload,
+
+        // Set the published timestamp into the response
+        Published = Published
+    };
 
     /// <summary>
     ///     This method generates an appropriately typed queue message from the instance

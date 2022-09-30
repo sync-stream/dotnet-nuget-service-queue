@@ -12,7 +12,7 @@ public interface IQueueService<TPayload> : IQueueService
     /// </summary>
     /// <param name="payload">The message payload to publish</param>
     /// <returns>An awaitable task containing the published message</returns>
-    public Task<QueueMessage<TPayload>> PublishAsync(TPayload payload);
+    public Task PublishAsync(TPayload payload);
 
     /// <summary>
     /// This method asynchronously publishes a message to <paramref name="queueName" />
@@ -20,7 +20,7 @@ public interface IQueueService<TPayload> : IQueueService
     /// <param name="queueName">The queue to publish the <paramref name="payload" /> to</param>
     /// <param name="payload">The message payload to publish</param>
     /// <returns>An awaitable task containing the published message</returns>
-    public Task<QueueMessage<TPayload>> PublishAsync(string queueName, TPayload payload);
+    public Task PublishAsync(string queueName, TPayload payload);
 
     /// <summary>
     /// This method asynchronously subscribes to the queue
@@ -37,7 +37,6 @@ public interface IQueueService<TPayload> : IQueueService
     /// <param name="queueName">The queue to subscribe to</param>
     /// <param name="delegateSubscriber">The message worker</param>
     /// <param name="stoppingToken">The token denoting task cancellation</param>
-    /// <typeparam name="TPayload">The expected message type</typeparam>
     /// <returns>An awaitable task containing the message</returns>
     public Task SubscribeAsync(string queueName, DelegateSubscriberAsync<TPayload> delegateSubscriber,
         CancellationToken stoppingToken = default);
