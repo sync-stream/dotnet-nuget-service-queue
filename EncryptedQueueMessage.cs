@@ -2,7 +2,6 @@
 using System.Xml.Serialization;
 using Microsoft.Extensions.Configuration;
 using SyncStream.Cryptography;
-using SyncStream.Serializer;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -22,7 +21,7 @@ public class EncryptedQueueMessage<TEncryptedPayload> : QueueMessage<string>
     /// <param name="encryptionConfiguration">The cryptographic settings</param>
     /// <returns>The decrypted <paramref name="hash" /></returns>
     public static string Decrypt(string hash, QueueServiceEncryptionConfiguration encryptionConfiguration) =>
-        CryptographyService.Decrypt(hash, encryptionConfiguration.Secret);
+        CryptographyService.Decrypt(hash, encryptionConfiguration);
 
     /// <summary>
     ///     This method decrypts <paramref name="hash" />
@@ -35,7 +34,7 @@ public class EncryptedQueueMessage<TEncryptedPayload> : QueueMessage<string>
     public static TOutput Decrypt<TOutput>(string hash, QueueServiceEncryptionConfiguration encryptionConfiguration) =>
         typeof(TOutput) == typeof(string)
             ? (TOutput)Convert.ChangeType(Decrypt(hash, encryptionConfiguration), typeof(TOutput))
-            : CryptographyService.Decrypt<TOutput>(hash, encryptionConfiguration.Secret);
+            : CryptographyService.Decrypt<TOutput>(hash, encryptionConfiguration);
 
     /// <summary>
     ///     This method asynchronously decrypts the <paramref name="hash" /> into a string
@@ -44,7 +43,7 @@ public class EncryptedQueueMessage<TEncryptedPayload> : QueueMessage<string>
     /// <param name="encryptionConfiguration">The cryptographic settings</param>
     /// <returns>An awaitable task containing the decrypted <paramref name="hash" /></returns>
     public static Task<string> DecryptAsync(string hash, QueueServiceEncryptionConfiguration encryptionConfiguration) =>
-        CryptographyService.DecryptAsync(hash, encryptionConfiguration.Secret);
+        CryptographyService.DecryptAsync(hash, encryptionConfiguration);
 
     /// <summary>
     ///     This method asynchronously decrypts <paramref name="hash" />
@@ -58,7 +57,7 @@ public class EncryptedQueueMessage<TEncryptedPayload> : QueueMessage<string>
         DecryptAsync<TOutput>(string hash, QueueServiceEncryptionConfiguration encryptionConfiguration) =>
         typeof(TOutput) == typeof(string)
             ? (TOutput)Convert.ChangeType(await DecryptAsync(hash, encryptionConfiguration), typeof(TOutput))
-            : await CryptographyService.DecryptAsync<TOutput>(hash, encryptionConfiguration.Secret);
+            : await CryptographyService.DecryptAsync<TOutput>(hash, encryptionConfiguration);
 
     /// <summary>
     ///     This method provides encryption for <paramref name="value" /> of <typeparamref name="TInput" />
@@ -69,10 +68,8 @@ public class EncryptedQueueMessage<TEncryptedPayload> : QueueMessage<string>
     /// <returns>The portable cryptographic hash of <paramref name="value" /></returns>
     public static string Encrypt<TInput>(TInput value, QueueServiceEncryptionConfiguration encryptionConfiguration) =>
         typeof(TInput) == typeof(string)
-            ? CryptographyService.Encrypt(value as string, encryptionConfiguration.Passes,
-                encryptionConfiguration.Secret)
-            : CryptographyService.Encrypt(value, SerializerFormat.Json, encryptionConfiguration.Passes,
-                encryptionConfiguration.Secret);
+            ? CryptographyService.Encrypt(value as string, encryptionConfiguration)
+            : CryptographyService.Encrypt(value, encryptionConfiguration);
 
     /// <summary>
     ///     This method provides asynchronous encryption for <paramref name="value" /> of <typeparamref name="TInput" />
@@ -84,10 +81,8 @@ public class EncryptedQueueMessage<TEncryptedPayload> : QueueMessage<string>
     public static Task<string>
         EncryptAsync<TInput>(TInput value, QueueServiceEncryptionConfiguration encryptionConfiguration) =>
         typeof(TInput) == typeof(string)
-            ? CryptographyService.EncryptAsync(value as string, encryptionConfiguration.Passes,
-                encryptionConfiguration.Secret)
-            : CryptographyService.EncryptAsync(value, SerializerFormat.Json, encryptionConfiguration.Passes,
-                encryptionConfiguration.Secret);
+            ? CryptographyService.EncryptAsync(value as string, encryptionConfiguration)
+            : CryptographyService.EncryptAsync(value, encryptionConfiguration);
 
     /// <summary>
     /// This property contains the payload for the Queue Message

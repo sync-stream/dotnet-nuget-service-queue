@@ -1,5 +1,5 @@
-﻿using System.Text.Json.Serialization;
-using System.Xml.Serialization;
+﻿using System.Xml.Serialization;
+using SyncStream.Cryptography.Configuration;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -8,26 +8,14 @@ namespace SyncStream.Service.Queue;
 /// This class maintains the structure of a queue's encryption configuration
 /// </summary>
 [XmlRoot("QueueEncryptionConfiguration")]
-public class QueueServiceEncryptionConfiguration
+public class QueueServiceEncryptionConfiguration : CryptographyConfiguration
 {
-    /// <summary>
-    /// This property contains the number of encryption passes to make
-    /// </summary>
-    [JsonPropertyName("Passes")]
-    [XmlAttribute("passes")]
-    public int Passes { get; set; } = 1;
-
-    /// <summary>
-    /// This property contains the cryptographic secret for encryption
-    /// </summary>
-    [JsonPropertyName("Secret")]
-    [XmlAttribute("secret")]
-    public string Secret { get; set; }
-
     /// <summary>
     /// This method instantiates an empty configuration
     /// </summary>
-    public QueueServiceEncryptionConfiguration() { }
+    public QueueServiceEncryptionConfiguration()
+    {
+    }
 
     /// <summary>
     ///     This method constructs a configuration object with a <paramref name="secret" />

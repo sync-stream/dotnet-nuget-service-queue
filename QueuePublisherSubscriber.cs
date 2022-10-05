@@ -1,6 +1,4 @@
-﻿using System.Text;
-using System.Text.RegularExpressions;
-using Amazon.S3;
+﻿using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using SyncStream.Aws.S3.Client;
 using SyncStream.Serializer;
@@ -160,7 +158,7 @@ public abstract class QueuePublisherSubscriber<TPayload>
                 SimpleStorageServiceEncryptedQueueMessage<TPayload> encryptedMessage =
                     await AwsSimpleStorageServiceClient
                         .DownloadObjectAsync<SimpleStorageServiceEncryptedQueueMessage<TPayload>>(objectName,
-                            SerializerFormat.Json, EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+                            EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
 
                 // Send the log message
                 GetLogger()?.LogInformation(GetLogMessage($"Decrypting S3 Message: {objectName}", null, null));
@@ -174,7 +172,7 @@ public abstract class QueuePublisherSubscriber<TPayload>
 
             // We're done, download the object from S3 then return it
             return await AwsSimpleStorageServiceClient.DownloadObjectAsync<SimpleStorageServiceQueueMessage<TPayload>>(
-                objectName, SerializerFormat.Json, EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+                objectName, EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
         }
 
         catch (Exception exception)
@@ -236,7 +234,7 @@ public abstract class QueuePublisherSubscriber<TPayload>
                 GetLogger()?.LogInformation(GetLogMessage($"Uploading Encrypted S3 Message: {objectName}", null, null));
 
                 // Upload the encrypted S3 message
-                await AwsSimpleStorageServiceClient.UploadAsync(objectName, encryptedMessage, SerializerFormat.Json,
+                await AwsSimpleStorageServiceClient.UploadAsync(objectName, encryptedMessage,
                     EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
             }
 
@@ -247,7 +245,7 @@ public abstract class QueuePublisherSubscriber<TPayload>
                 GetLogger()?.LogInformation(GetLogMessage($"Uploading S3 Message: {objectName}", null, null));
 
                 // Upload the S3 message
-                await AwsSimpleStorageServiceClient.UploadAsync(objectName, message, SerializerFormat.Json,
+                await AwsSimpleStorageServiceClient.UploadAsync(objectName, message,
                     EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
             }
         }
