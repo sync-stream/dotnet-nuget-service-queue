@@ -1,9 +1,8 @@
-﻿using System.Net.Security;
-using System.Security.Authentication;
+﻿using System.Security.Authentication;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
+using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
-using SyncStream.Serializer;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -12,83 +11,94 @@ namespace SyncStream.Service.Queue;
 ///     This class maintains the structure of a registered queue in the configuration
 /// </summary>
 [XmlInclude(typeof(QueueSimpleStorageServiceConfiguration))]
-[XmlRoot("QueueConfiguration")]
+[XmlRoot("queueConfiguration")]
 public class QueueConfiguration
 {
     /// <summary>
     ///     This property contains the encryption configuration for the queue endpoint
     /// </summary>
-    [JsonPropertyName("Encryption")]
-    [XmlElement("Encryption")]
+    [ConfigurationKeyName("encryption")]
+    [JsonPropertyName("encryption")]
+    [XmlElement("encryption")]
     public QueueServiceEncryptionConfiguration Encryption { get; set; }
 
     /// <summary>
     ///     This property contains the RabbitMQ name for the queue
     /// </summary>
-    [JsonPropertyName("Endpoint")]
+    [ConfigurationKeyName("endpoint")]
+    [JsonPropertyName("endpoint")]
     [XmlAttribute("endpoint")]
     public string Endpoint { get; set; }
 
     /// <summary>
     ///     This property contains the address at which the RabbitMQ service listens
     /// </summary>
-    [JsonPropertyName("Hostname")]
+    [ConfigurationKeyName("hostname")]
+    [JsonPropertyName("hostname")]
     [XmlAttribute("hostname")]
     public string Hostname { get; set; }
 
     /// <summary>
     ///     This property contains the friendly name of the queue
     /// </summary>
-    [JsonPropertyName("Name")]
+    [ConfigurationKeyName("name")]
+    [JsonPropertyName("name")]
     [XmlAttribute("name")]
     public string Name { get; set; }
 
     /// <summary>
     ///     This property contains the password with which to authenticate with the RabbitMQ service
     /// </summary>
-    [JsonPropertyName("Password")]
+    [ConfigurationKeyName("password")]
+    [JsonPropertyName("password")]
     [XmlAttribute("password")]
     public string Password { get; set; }
 
     /// <summary>
     ///     This property contains the port number on which the RabbitMQ service listens
     /// </summary>
-    [JsonPropertyName("Port")]
+    [ConfigurationKeyName("port")]
+    [JsonPropertyName("port")]
     [XmlAttribute("port")]
     public int Port { get; set; } = 5672;
 
     /// <summary>
     ///     This property denotes whether the connection to the RabbitMQ service is secure or not
     /// </summary>
-    [JsonPropertyName("Secure")]
+    [ConfigurationKeyName("secure")]
+    [JsonPropertyName("secure")]
     [XmlAttribute("secure")]
     public bool Secure { get; set; }
 
     /// <summary>
     ///     This property contains the AWS S3 configuration for the queue
     /// </summary>
-    [JsonPropertyName("SimpleStorageService")]
+    [ConfigurationKeyName("simpleStorageService")]
+    [JsonPropertyName("simpleStorageService")]
     [XmlElement("SimpleStorageService")]
     public QueueSimpleStorageServiceConfiguration SimpleStorageService { get; set; }
 
     /// <summary>
     ///     This property denotes whether logs should be suppressed or not
     /// </summary>
-    [JsonPropertyName("SuppressLog")]
+    [ConfigurationKeyName("suppressLog")]
+    [JsonPropertyName("suppressLog")]
     [XmlAttribute("suppressLog")]
     public bool SuppressLog { get; set; }
 
     /// <summary>
     ///     This property contains the username with which to authenticate with the RabbitMQ service
     /// </summary>
-    [JsonPropertyName("Username")]
+    [ConfigurationKeyName("username")]
+    [JsonPropertyName("username")]
     [XmlAttribute("username")]
     public string Username { get; set; }
 
     /// <summary>
     ///     This property contains the virtual host on which the queue lives inside the RabbitMQ service
     /// </summary>
-    [JsonPropertyName("VirtualHost")]
+    [ConfigurationKeyName("virtualHost")]
+    [JsonPropertyName("virtualHost")]
     [XmlAttribute("vhost")]
     public string VirtualHost { get; set; } = "/";
 
