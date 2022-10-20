@@ -25,7 +25,7 @@ public class QueueMessageRejectedReason
     /// </summary>
     /// <param name="exception">The exception for the rejection reason</param>
     /// <returns>An instantiated queue message rejection reason</returns>
-    public static implicit operator QueueMessageRejectedReason(Exception exception) => new(exception);
+    public static implicit operator QueueMessageRejectedReason(System.Exception exception) => new(exception);
 
     /// <summary>
     /// This property contains an inner error if one occurred
@@ -68,7 +68,7 @@ public class QueueMessageRejectedReason
     /// <param name="exception"></param>
     /// <typeparam name="TError"></typeparam>
     /// <returns></returns>
-    public static TError FromException<TError>(Exception exception) where TError : QueueMessageRejectedReason, new() =>
+    public static TError FromException<TError>(System.Exception exception) where TError : QueueMessageRejectedReason, new() =>
         (TError) Activator.CreateInstance(typeof(TError), exception);
 
     /// <summary>
@@ -85,7 +85,7 @@ public class QueueMessageRejectedReason
     /// This method instantiates a populates response error
     /// </summary>
     /// <param name="exception"></param>
-    protected QueueMessageRejectedReason(Exception exception)
+    protected QueueMessageRejectedReason(System.Exception exception)
     {
         // Check for an inner-exception and set it into the instance
         InnerError = exception.InnerException == null ? null : new(exception.InnerException);

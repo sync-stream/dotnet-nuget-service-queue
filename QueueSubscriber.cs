@@ -49,6 +49,9 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         // Acknowledge the message
         message.Acknowledged = DateTimeOffset.UtcNow.DateTime;
 
+        // Reset the consumed timestamp into the message
+        message.Consumed = DateTimeOffset.UtcNow.DateTime;
+
         // Write the message back to S3
         await WriteSimpleStorageServiceMessageAsync(message);
     }
@@ -92,7 +95,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
             // Send the log message
             GetLogger()?.LogInformation(GetLogMessage("Message Acknowledged by Consumer", message, delegateSubscriber));
         }
-        catch (Exception subscriberException)
+        catch (System.Exception subscriberException)
         {
             // Check for S3 aliasing and reject the alias message
             if (EndpointConfiguration.SimpleStorageService is not null && objectName is not null)
@@ -156,7 +159,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         }
 
         // Catch any exceptions with the deserialization and processing
-        catch (Exception exception)
+        catch (System.Exception exception)
         {
             // We're done, reject the message
             EndpointConfiguration.GetChannel().BasicReject(arguments.DeliveryTag, false);
@@ -231,6 +234,9 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
 
         // Download the alias message from S3
         SimpleStorageServiceQueueMessage<TPayload> message = await DownloadSimpleStorageServiceMessageAsync(objectName);
+
+        // Reset the consumed timestamp into the message
+        message.Consumed = DateTimeOffset.UtcNow.DateTime;
 
         // Reject the message
         message.Rejected = DateTimeOffset.UtcNow.DateTime;

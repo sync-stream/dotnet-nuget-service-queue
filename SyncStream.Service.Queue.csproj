@@ -58,13 +58,13 @@
     <PackageReference Include="RabbitMQ.Client" Version="6.4.0" />
 
     <!-- We'll need S3 for Queue Messages -->
-    <PackageReference Include="SyncStream.Aws.S3.Client" Version="1.0.15" />
+    <PackageReference Include="SyncStream.Aws.S3.Client" Version="1.1.0" />
 
     <!-- We'll need cryptography for the encrypted queues -->
     <PackageReference Include="SyncStream.Cryptography" Version="1.0.11" />
 
     <!-- We'll need our serializer -->
-    <PackageReference Include="SyncStream.Serializer" Version="1.0.9" />
+    <PackageReference Include="SyncStream.Serializer" Version="1.1.0" />
   </ItemGroup>
 
   <!-- Include our assets -->

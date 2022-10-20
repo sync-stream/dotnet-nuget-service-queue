@@ -128,6 +128,9 @@ public class EncryptedQueueMessage<TEncryptedPayload> : QueueMessage<string>
         // Set the published timestamp into the instance
         Published = message.Published;
 
+        // Set the rejected timestamp into the instance
+        Rejected = message.Rejected;
+
         // Encrypt the payload and set it into the instance
         WithPayload(message.Payload, encryptionConfiguration);
     }
@@ -208,7 +211,10 @@ public class EncryptedQueueMessage<TEncryptedPayload> : QueueMessage<string>
         Payload = Decrypt<TEncryptedPayload>(Payload, encryptionConfiguration),
 
         // Set the published timestamp into the instance
-        Published = Published
+        Published = Published,
+
+        // Set the rejected timestamp into the instance
+        Rejected = Rejected
     };
 
     /// <summary>
@@ -232,7 +238,10 @@ public class EncryptedQueueMessage<TEncryptedPayload> : QueueMessage<string>
         Payload = await DecryptAsync<TEncryptedPayload>(Payload, encryptionConfiguration),
 
         // Set the published timestamp into the instance
-        Published = Published
+        Published = Published,
+
+        // Set the rejected timestamp into the instance
+        Rejected = Rejected
     };
 
     /// <summary>

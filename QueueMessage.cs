@@ -44,8 +44,15 @@ public class QueueMessage<TPayload>
     /// This property contains the timestamp at which the Queue Message was published to the queue
     /// </summary>
     [JsonPropertyName("published")]
-    [XmlAttribute("published")]
+    [XmlElement("published")]
     public DateTime? Published { get; set; }
+
+    /// <summary>
+    ///     This property contains the timestamp at which the message was rejected
+    /// </summary>
+    [JsonPropertyName("rejected")]
+    [XmlElement("rejected")]
+    public DateTime? Rejected { get; set; }
 
     /// <summary>
     /// This property contains the instance of our S3 alias message
@@ -97,7 +104,10 @@ public class QueueMessage<TPayload>
             Id = Id,
 
             // Set the publish timestamp into the response
-            Published = Published
+            Published = Published,
+
+            // Set the rejected timestamp into the response
+            Rejected = Rejected
         };
 
         // Encrypt the payload into the response

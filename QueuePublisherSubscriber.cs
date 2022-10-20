@@ -175,7 +175,7 @@ public abstract class QueuePublisherSubscriber<TPayload>
                 objectName, EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
         }
 
-        catch (Exception exception)
+        catch (System.Exception exception)
         {
             // Send the log message
             GetLogger()?.LogError(exception,
@@ -249,7 +249,7 @@ public abstract class QueuePublisherSubscriber<TPayload>
                     EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
             }
         }
-        catch (Exception exception)
+        catch (System.Exception exception)
         {
             // Send the log message
             GetLogger()?.LogError(exception,

@@ -37,13 +37,6 @@ public class SimpleStorageServiceQueueMessage<TEnvelope> : QueueMessage<string>,
     public TEnvelope Envelope { get; set; }
 
     /// <summary>
-    ///     This property contains the timestamp at which the message was rejected
-    /// </summary>
-    [JsonPropertyName("rejected")]
-    [XmlElement("rejected")]
-    public DateTime? Rejected { get; set; }
-
-    /// <summary>
     ///     This property contains the reason as to why the message was rejected
     /// </summary>
     [JsonPropertyName("rejectedReason")]
@@ -149,7 +142,10 @@ public class SimpleStorageServiceQueueMessage<TEnvelope> : QueueMessage<string>,
         Payload = Payload,
 
         // Set the published timestamp into the response
-        Published = Published
+        Published = Published,
+
+        // Set the rejected timestamp into the response
+        Rejected = Rejected
     };
 
     /// <summary>
@@ -172,6 +168,9 @@ public class SimpleStorageServiceQueueMessage<TEnvelope> : QueueMessage<string>,
 
         // Set the published timestamp into the response
         Published = Published,
+
+        // Set the rejected timestamp into the response
+        Rejected = Rejected,
 
         // Set the S3 message into the instance
         SimpleStorageServiceMessage = this
