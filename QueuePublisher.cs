@@ -34,7 +34,7 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
     private async Task<string> PublishMessageAsync(TPayload payload)
     {
         // Instantiate our message
-        QueueMessage<TPayload> message = new(payload) { Published = DateTimeOffset.UtcNow.DateTime };
+        QueueMessage<TPayload> message = new(payload) {Published = DateTimeOffset.UtcNow.DateTime};
 
         // Define our serialization container
         string serialized;
@@ -47,11 +47,12 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
 
             // Encrypt and serialize the message
             serialized =
-                JsonSerializer.Serialize(await message.ToEncryptedQueueMessageAsync(EndpointConfiguration.Encryption));
+                JsonSerializer.Serialize(await message.ToEncryptedQueueMessageAsync(EndpointConfiguration.Encryption),
+                    true);
         }
 
         // Otherwise, serialize the message
-        else serialized = JsonSerializer.Serialize(message);
+        else serialized = JsonSerializer.Serialize(message, true);
 
         // We're done, return the serialized object
         return serialized;
@@ -65,14 +66,17 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
     private async Task<string> PublishSimpleStorageServiceMessageAsync(TPayload payload)
     {
         // Instantiate our message
-        QueueMessage<TPayload> message = new(payload) { Published = DateTimeOffset.UtcNow.DateTime };
+        QueueMessage<TPayload> message = new(payload) {Published = DateTimeOffset.UtcNow.DateTime};
+
+        // Generate the object path
+        string objectPath = GenerateObjectPath(message.Id);
 
         // Convert our message to an S3 message
         SimpleStorageServiceQueueMessage<TPayload> simpleStorageServiceMessage =
-            message.ToSimpleStorageServiceQueueMessage(GenerateObjectName(message.Id));
+            message.ToSimpleStorageServiceQueueMessage(objectPath);
 
         // Write the message to S3
-        await WriteSimpleStorageServiceMessageAsync(simpleStorageServiceMessage);
+        await WriteSimpleStorageServiceMessageAsync(objectPath, simpleStorageServiceMessage);
 
         // Define our serialization container
         string serialized;
@@ -85,7 +89,7 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
 
             // Encrypt and serialize the alias message
             serialized = JsonSerializer.Serialize(await simpleStorageServiceMessage.ToQueueAliasMessage()
-                .ToEncryptedQueueMessageAsync(EndpointConfiguration.Encryption));
+                .ToEncryptedQueueMessageAsync(EndpointConfiguration.Encryption), true);
         }
 
         // Otherwise, convert the message to an S3 message and serialize it
@@ -96,7 +100,7 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
 
             // Serialize the alias message
             serialized =
-                JsonSerializer.Serialize(simpleStorageServiceMessage.ToQueueAliasMessage());
+                JsonSerializer.Serialize(simpleStorageServiceMessage.ToQueueAliasMessage(), true);
         }
 
         // We're done, return the serialized object

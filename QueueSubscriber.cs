@@ -34,17 +34,17 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
     /// <summary>
     ///     This method asynchronously acknowledges an S3 alias message
     /// </summary>
-    /// <param name="objectName">The object path to the message on S3</param>
-    private async Task AcknowledgeSimpleStorageServiceMessageAsync(string objectName)
+    /// <param name="objectPath">The object path to the message on S3</param>
+    private async Task AcknowledgeSimpleStorageServiceMessageAsync(string objectPath)
     {
         // Ensure we have an S3 configuration in the instance
         if (EndpointConfiguration.SimpleStorageService is null) return;
 
         // Send the log message
-        GetLogger()?.LogInformation(GetLogMessage($"Acknowledging S3 Message at {objectName}", null, null));
+        GetLogger()?.LogInformation(GetLogMessage($"Acknowledging S3 Message at {objectPath}", null, null));
 
         // Download the alias message from S3
-        SimpleStorageServiceQueueMessage<TPayload> message = await DownloadSimpleStorageServiceMessageAsync(objectName);
+        SimpleStorageServiceQueueMessage<TPayload> message = await DownloadSimpleStorageServiceMessageAsync(objectPath);
 
         // Acknowledge the message
         message.Acknowledged = DateTimeOffset.UtcNow.DateTime;
@@ -53,7 +53,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         message.Consumed = DateTimeOffset.UtcNow.DateTime;
 
         // Write the message back to S3
-        await WriteSimpleStorageServiceMessageAsync(message);
+        await WriteSimpleStorageServiceMessageAsync(objectPath, message);
     }
 
     /// <summary>
@@ -159,7 +159,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         }
 
         // Catch any exceptions with the deserialization and processing
-        catch (System.Exception exception)
+        catch (Exception exception)
         {
             // We're done, reject the message
             EndpointConfiguration.GetChannel().BasicReject(arguments.DeliveryTag, false);
@@ -221,19 +221,19 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
     /// <summary>
     ///     This method asynchronously rejects an S3 alias message
     /// </summary>
-    /// <param name="objectName">The object path to the message on S3</param>
+    /// <param name="objectPath">The object path to the message on S3</param>
     /// <param name="reason">The reason the message was rejected</param>
-    private async Task RejectSimpleStorageServiceMessageAsync(string objectName, QueueMessageRejectedReason reason)
+    private async Task RejectSimpleStorageServiceMessageAsync(string objectPath, QueueMessageRejectedReason reason)
     {
         // Ensure we have an S3 configuration in the instance
         if (EndpointConfiguration.SimpleStorageService is null) return;
 
         // Send the log message
-        GetLogger()?.LogError(GetLogMessage($"Rejected S3 Message at {objectName} with {reason.Message}", null,
+        GetLogger()?.LogError(GetLogMessage($"Rejected S3 Message at {objectPath} with {reason.Message}", null,
             null));
 
         // Download the alias message from S3
-        SimpleStorageServiceQueueMessage<TPayload> message = await DownloadSimpleStorageServiceMessageAsync(objectName);
+        SimpleStorageServiceQueueMessage<TPayload> message = await DownloadSimpleStorageServiceMessageAsync(objectPath);
 
         // Reset the consumed timestamp into the message
         message.Consumed = DateTimeOffset.UtcNow.DateTime;
@@ -245,7 +245,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         message.RejectedReason = reason;
 
         // Write the message back to S3
-        await WriteSimpleStorageServiceMessageAsync(message);
+        await WriteSimpleStorageServiceMessageAsync(objectPath, message);
     }
 
     /// <summary>

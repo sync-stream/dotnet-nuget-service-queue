@@ -193,24 +193,19 @@ public abstract class QueuePublisherSubscriber<TPayload>
     /// </summary>
     /// <param name="messageId">The unique ID of the queue message</param>
     /// <returns>The object name</returns>
-    protected string GenerateObjectName(Guid messageId) =>
-        Regex.Replace(
-            $"{EndpointConfiguration.SimpleStorageService?.BucketPrefix}/{EndpointConfiguration?.Endpoint}/{messageId}",
-            @"/+", @"/");
+    protected string GenerateObjectPath(Guid messageId) => Regex.Replace($"{EndpointConfiguration.SimpleStorageService?.BucketPrefix}/{EndpointConfiguration?.Endpoint}/{DateTimeOffset.UtcNow.DateTime:yyyy/MM/dd}/{messageId}", @"/+", @"/");
 
     /// <summary>
     ///     This method asynchronously writes the <paramref name="message" /> to
     ///     AWS S3 at <paramref name="message.Payload" />.message.json
     /// </summary>
+    /// <param name="objectPath">The path to the object in AWS S3</param>
     /// <param name="message">The message to store</param>
     /// <returns>An awaitable task with a void result</returns>
-    protected async Task WriteSimpleStorageServiceMessageAsync(SimpleStorageServiceQueueMessage<TPayload> message)
+    protected async Task WriteSimpleStorageServiceMessageAsync(string objectPath, SimpleStorageServiceQueueMessage<TPayload> message)
     {
         // Check for S3 capabilities
         if (EndpointConfiguration.SimpleStorageService is null) return;
-
-        // Define our object name
-        string objectName = $"{GenerateObjectName(message.Id)}.json";
 
         // Try to write the message
         try
@@ -220,7 +215,7 @@ public abstract class QueuePublisherSubscriber<TPayload>
                 EndpointConfiguration.SimpleStorageService.EncryptObjects)
             {
                 // Send the log message
-                GetLogger()?.LogInformation(GetLogMessage($"Encrypting S3 Message: {objectName}", null, null));
+                GetLogger()?.LogInformation(GetLogMessage($"Encrypting S3 Message: {objectPath}", null, null));
 
                 // Encrypt the S3 message
                 SimpleStorageServiceEncryptedQueueMessage<TPayload> encryptedMessage =
@@ -228,13 +223,13 @@ public abstract class QueuePublisherSubscriber<TPayload>
 
                 // Send the lob message
                 GetLogger()?.LogInformation(
-                    GetLogMessage($"Serializing Encrypted S3 Message: {objectName}", null, null));
+                    GetLogMessage($"Serializing Encrypted S3 Message: {objectPath}", null, null));
 
                 // Send the log message
-                GetLogger()?.LogInformation(GetLogMessage($"Uploading Encrypted S3 Message: {objectName}", null, null));
+                GetLogger()?.LogInformation(GetLogMessage($"Uploading Encrypted S3 Message: {objectPath}", null, null));
 
                 // Upload the encrypted S3 message
-                await AwsSimpleStorageServiceClient.UploadAsync(objectName, encryptedMessage,
+                await AwsSimpleStorageServiceClient.UploadAsync(objectPath, encryptedMessage,
                     EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
             }
 
@@ -242,10 +237,10 @@ public abstract class QueuePublisherSubscriber<TPayload>
             else
             {
                 // Send the log message
-                GetLogger()?.LogInformation(GetLogMessage($"Uploading S3 Message: {objectName}", null, null));
+                GetLogger()?.LogInformation(GetLogMessage($"Uploading S3 Message: {objectPath}", null, null));
 
                 // Upload the S3 message
-                await AwsSimpleStorageServiceClient.UploadAsync(objectName, message,
+                await AwsSimpleStorageServiceClient.UploadAsync(objectPath, message,
                     EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
             }
         }
@@ -254,7 +249,7 @@ public abstract class QueuePublisherSubscriber<TPayload>
             // Send the log message
             GetLogger()?.LogError(exception,
                 GetLogMessage(
-                    $"Failed to Write S3 Message {objectName} with {exception?.InnerException?.Message ?? exception.Message}",
+                    $"Failed to Write S3 Message {objectPath} with {exception?.InnerException?.Message ?? exception.Message}",
                     null,
                     null));
         }

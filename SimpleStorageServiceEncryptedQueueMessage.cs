@@ -28,13 +28,6 @@ public class SimpleStorageServiceEncryptedQueueMessage<TEnvelope> : EncryptedQue
     public string Envelope { get; set; }
 
     /// <summary>
-    ///     This property contains the timestamp at which the message was rejected
-    /// </summary>
-    [JsonPropertyName("rejected")]
-    [XmlElement("rejected")]
-    public DateTime? Rejected { get; set; }
-
-    /// <summary>
     ///     This property contains the reason as to why the message was rejected
     /// </summary>
     [JsonPropertyName("rejectedReason")]
