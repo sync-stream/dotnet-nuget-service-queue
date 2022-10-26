@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
+using SyncStream.Serializer;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -69,6 +70,14 @@ public class QueueConfiguration
     [JsonPropertyName("secure")]
     [XmlAttribute("secure")]
     public bool Secure { get; set; }
+
+    /// <summary>
+    ///     This property contains the serialization format to use for queue messages, both in RabbitMQ and AWS S3
+    /// </summary>
+    [ConfigurationKeyName("serializationFormat")]
+    [JsonPropertyName("serializationFormat")]
+    [XmlAttribute("serializationFormat")]
+    public SerializerFormat SerializationFormat { get; set; } = SerializerFormat.Json;
 
     /// <summary>
     ///     This property contains the AWS S3 configuration for the queue

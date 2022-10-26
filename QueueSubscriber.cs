@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using JsonSerializer = System.Text.Json.JsonSerializer;
+using SyncStream.Serializer;
 
 // Define our namespace
 namespace SyncStream.Service.Queue;
@@ -194,7 +194,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
 
             // Localize the message
             EncryptedQueueMessage<TPayloadOverride> encryptedMessage =
-                Serializer.JsonSerializer.Deserialize<EncryptedQueueMessage<TPayloadOverride>>(message);
+                SerializerService.Deserialize<EncryptedQueueMessage<TPayloadOverride>>(message, EndpointConfiguration.SerializationFormat);
 
             // Send the log message
             GetLogger()?.LogInformation(GetLogMessage("Decrypting Incoming Message", null, null));
@@ -207,7 +207,7 @@ public sealed class QueueSubscriber<TPayload> : QueuePublisherSubscriber<TPayloa
         GetLogger()?.LogInformation(GetLogMessage("Deserializing Incoming Message", null, null));
 
         // Deserialize and return the message
-        return JsonSerializer.Deserialize<QueueMessage<TPayloadOverride>>(message);
+        return SerializerService.Deserialize<QueueMessage<TPayloadOverride>>(message, EndpointConfiguration.SerializationFormat);
     }
 
     /// <summary>

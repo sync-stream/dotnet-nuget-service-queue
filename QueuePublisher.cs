@@ -46,13 +46,13 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
             GetLogger()?.LogInformation(GetLogMessage("Encrypting New Message", null, null));
 
             // Encrypt and serialize the message
-            serialized =
-                JsonSerializer.Serialize(await message.ToEncryptedQueueMessageAsync(EndpointConfiguration.Encryption),
-                    true);
+            serialized = SerializerService.Serialize(
+                await message.ToEncryptedQueueMessageAsync(EndpointConfiguration.Encryption),
+                EndpointConfiguration.SerializationFormat);
         }
 
         // Otherwise, serialize the message
-        else serialized = JsonSerializer.Serialize(message, true);
+        else serialized = SerializerService.Serialize(message, EndpointConfiguration.SerializationFormat);
 
         // We're done, return the serialized object
         return serialized;
@@ -88,8 +88,7 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
             GetLogger()?.LogInformation(GetLogMessage("Generating and Encrypting New Alias Message", null, null));
 
             // Encrypt and serialize the alias message
-            serialized = JsonSerializer.Serialize(await simpleStorageServiceMessage.ToQueueAliasMessage()
-                .ToEncryptedQueueMessageAsync(EndpointConfiguration.Encryption), true);
+            serialized = SerializerService.SerializePretty(await simpleStorageServiceMessage.ToQueueAliasMessage().ToEncryptedQueueMessageAsync(EndpointConfiguration.Encryption), EndpointConfiguration.SerializationFormat);
         }
 
         // Otherwise, convert the message to an S3 message and serialize it
@@ -99,8 +98,7 @@ public class QueuePublisher<TPayload> : QueuePublisherSubscriber<TPayload>
             GetLogger()?.LogInformation(GetLogMessage("Generating New Alias Message", null, null));
 
             // Serialize the alias message
-            serialized =
-                JsonSerializer.Serialize(simpleStorageServiceMessage.ToQueueAliasMessage(), true);
+            serialized = SerializerService.SerializePretty(simpleStorageServiceMessage.ToQueueAliasMessage(), EndpointConfiguration.SerializationFormat);
         }
 
         // We're done, return the serialized object
