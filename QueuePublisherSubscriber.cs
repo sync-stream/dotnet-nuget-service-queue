@@ -132,16 +132,18 @@ public abstract class QueuePublisherSubscriber<TPayload>
     /// <summary>
     ///     This method asynchronously downloads an alias message from AWS S3
     /// </summary>
-    /// <param name="objectName">The object path of the alias message to download</param>
+    /// <param name="objectPath">The object path of the alias message to download</param>
     /// <returns>An awaitable task containing the alias message</returns>
     protected async Task<SimpleStorageServiceQueueMessage<TPayload>> DownloadSimpleStorageServiceMessageAsync(
-        string objectName)
+        string objectPath)
     {
         // Check for S3 capabilities
         if (EndpointConfiguration.SimpleStorageService is null) return null;
 
-        // Finalize our object name
-        objectName = $"{objectName}.json";
+        // Ensure the object path has an extension
+        if (!objectPath.EndsWith($".{EndpointConfiguration.SerializationFormat.ToString()}",
+                StringComparison.CurrentCultureIgnoreCase))
+            objectPath = $"{objectPath}.{EndpointConfiguration.SerializationFormat.ToString().ToLower()}";
 
         // Try to download the S3 message
         try
@@ -152,27 +154,27 @@ public abstract class QueuePublisherSubscriber<TPayload>
             {
                 // Send the log message
                 GetLogger()?.LogInformation(
-                    GetLogMessage($"Downloading Encrypted S3 Message: {objectName}", null, null));
+                    GetLogMessage($"Downloading Encrypted S3 Message: {objectPath}", null, null));
 
                 // Download the message
                 SimpleStorageServiceEncryptedQueueMessage<TPayload> encryptedMessage =
                     await AwsSimpleStorageServiceClient
-                        .DownloadObjectAsync<SimpleStorageServiceEncryptedQueueMessage<TPayload>>(objectName,
+                        .DownloadObjectAsync<SimpleStorageServiceEncryptedQueueMessage<TPayload>>(objectPath,
                             EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
 
                 // Send the log message
-                GetLogger()?.LogInformation(GetLogMessage($"Decrypting S3 Message: {objectName}", null, null));
+                GetLogger()?.LogInformation(GetLogMessage($"Decrypting S3 Message: {objectPath}", null, null));
 
                 // We're done, return the decrypted message
                 return await encryptedMessage.ToSimpleStorageServiceQueueMessageAsync(EndpointConfiguration.Encryption);
             }
 
             // Send the log message
-            GetLogger()?.LogInformation(GetLogMessage($"Downloading S3 Message: {objectName}", null, null));
+            GetLogger()?.LogInformation(GetLogMessage($"Downloading S3 Message: {objectPath}", null, null));
 
             // We're done, download the object from S3 then return it
             return await AwsSimpleStorageServiceClient.DownloadObjectAsync<SimpleStorageServiceQueueMessage<TPayload>>(
-                objectName, EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
+                objectPath, EndpointConfiguration.SimpleStorageService.ToClientConfiguration());
         }
 
         catch (Exception exception)
@@ -206,6 +208,11 @@ public abstract class QueuePublisherSubscriber<TPayload>
     {
         // Check for S3 capabilities
         if (EndpointConfiguration.SimpleStorageService is null) return;
+
+        // Ensure the object path has an extension
+        if (!objectPath.EndsWith($".{EndpointConfiguration.SerializationFormat.ToString()}",
+                StringComparison.CurrentCultureIgnoreCase))
+            objectPath = $"{objectPath}.{EndpointConfiguration.SerializationFormat.ToString().ToLower()}";
 
         // Try to write the message
         try
